@@ -1,0 +1,6 @@
+{
+  "name": "coupon-news-ui",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Static frontend + serverless API for reading the daily bond/rates news briefing stored in Upstash Redis."
+}
