@@ -7,6 +7,10 @@
 export default async function handler(req, res) {
   const { UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN } = process.env;
 
+  // Allows the embedded copy on point75.io/news to call this endpoint
+  // cross-origin. Narrow to "https://point75.io" once confirmed working.
+  res.setHeader("Access-Control-Allow-Origin", "*");
+
   if (!UPSTASH_REDIS_REST_URL || !UPSTASH_REDIS_REST_TOKEN) {
     res.status(500).json({
       error: "Server not configured",
