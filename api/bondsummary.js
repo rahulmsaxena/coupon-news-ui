@@ -2,7 +2,8 @@
 // It reads the same Upstash database, just a different key, and keeps the
 // token server-side exactly like api/news.js already does.
 //
-// GET /api/bondsummary -> { summary, generated_at }
+// GET /api/bondsummary                  -> today's summary (bondsummary:latest)
+// GET /api/bondsummary?date=YYYY-MM-DD   -> a specific archived day
 //
 // CORS note: unlike api/news.js (called from the same origin as its own
 // index.html), this one gets called from point75.io - a *different*
@@ -22,9 +23,12 @@ export default async function handler(req, res) {
     return;
   }
 
+  const date = typeof req.query.date === "string" ? req.query.date : null;
+  const key = date ? `bondsummary:${date}` : "bondsummary:latest";
+
   try {
     const upstreamResp = await fetch(
-      `${UPSTASH_REDIS_REST_URL}/get/bondsummary:latest`,
+      `${UPSTASH_REDIS_REST_URL}/get/${encodeURIComponent(key)}`,
       { headers: { Authorization: `Bearer ${UPSTASH_REDIS_REST_TOKEN}` } }
     );
 
@@ -36,7 +40,7 @@ export default async function handler(req, res) {
     const body = await upstreamResp.json();
 
     if (!body.result) {
-      res.status(404).json({ error: "No bond summary published yet" });
+      res.status(404).json({ error: `No bond summary found for "${key}"` });
       return;
     }
 
