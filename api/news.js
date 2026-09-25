@@ -43,7 +43,7 @@ export default async function handler(req, res) {
     const payload = JSON.parse(body.result);
 
     // Cache at the edge for 5 minutes; the daily cron only writes once a day anyway.
-    res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
+    res.setHeader("Cache-Control", "no-store");
     res.status(200).json(payload);
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch news", detail: String(err) });

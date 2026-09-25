@@ -23,7 +23,7 @@ export default async function handler(req, res) {
     }
 
     const body = await upstreamResp.json();
-    res.setHeader("Cache-Control", "s-maxage=300, stale-while-revalidate=600");
+    res.setHeader("Cache-Control", "no-store");
     res.status(200).json({ dates: body.result || [] });
   } catch (err) {
     res.status(500).json({ error: "Failed to fetch dates", detail: String(err) });
