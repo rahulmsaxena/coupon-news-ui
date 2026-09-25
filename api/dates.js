@@ -4,6 +4,8 @@
 export default async function handler(req, res) {
   const { UPSTASH_REDIS_REST_URL, UPSTASH_REDIS_REST_TOKEN } = process.env;
 
+  res.setHeader("Access-Control-Allow-Origin", "*");
+
   if (!UPSTASH_REDIS_REST_URL || !UPSTASH_REDIS_REST_TOKEN) {
     res.status(500).json({ error: "Server not configured" });
     return;
