@@ -6,236 +6,170 @@
 <title>Coupon — rates, debt & the politics that move them</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Source+Serif+4:ital,opsz,wght@0,8..60,400;0,8..60,600;0,8..60,700;1,8..60,400&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --ink: #0F1B2D;
-    --ink-raised: #142236;
-    --paper: #F2EFE9;
-    --paper-dim: #C9D2DD;
-    --slate: #7C8FA3;
-    --rule: #26374F;
-    --gold: #C9A227;
-    --err: #C1554A;
+    --bg: #0A0F1A;
+    --bg-raised: #111A29;
+    --panel-border: #22314A;
+    --paper: #ECE7DD;
+    --paper-dim: #C3CAD6;
+    --dim: #7E8CA3;
+    --gold: #F2B705;
+    --gold-dim: #B98D1D;
+    --up: #33D17A;
+    --down: #FF5C5C;
     --serif: "Source Serif 4", Georgia, "Times New Roman", serif;
     --mono: "IBM Plex Mono", ui-monospace, "SFMono-Regular", Menlo, monospace;
   }
 
   *{ box-sizing: border-box; }
-
-  html, body{
-    margin:0; padding:0;
-    background: var(--ink);
-    color: var(--paper);
-    font-family: var(--serif);
-  }
-
-  body{
-    min-height: 100vh;
-  }
-
+  html, body{ margin:0; padding:0; background: var(--bg); color: var(--paper); font-family: var(--serif); }
+  body{ min-height: 100vh; }
   a{ color: inherit; }
 
-  .wrap{
-    max-width: 720px;
-    margin: 0 auto;
-    padding: 2.5rem 1.5rem 5rem;
-  }
+  .wrap{ max-width: 800px; margin: 0 auto; padding: 2.25rem 1.25rem 5rem; }
 
   /* Masthead */
   header.masthead{
-    border-bottom: 2px solid var(--gold);
-    padding-bottom: 1.1rem;
-    margin-bottom: 1.5rem;
-  }
-  .masthead-row{
-    display:flex;
-    align-items: baseline;
-    justify-content: space-between;
-    gap: 1rem;
-    flex-wrap: wrap;
+    display:flex; align-items: baseline; justify-content: space-between;
+    gap: 1rem; flex-wrap: wrap;
+    border-bottom: 1px solid var(--panel-border);
+    padding-bottom: 1rem; margin-bottom: 1.5rem;
   }
   .masthead-title{
-    font-size: 2.1rem;
-    font-weight: 700;
-    letter-spacing: 0.01em;
-    margin: 0;
+    font-size: 1.9rem; font-weight: 700; letter-spacing: 0.01em; margin: 0;
+    color: var(--paper);
   }
-  .masthead-meta{
-    font-family: var(--mono);
-    font-size: 0.78rem;
-    color: var(--slate);
-    text-align: right;
-  }
-  .masthead-tagline{
-    margin: 0.5rem 0 0;
-    color: var(--paper-dim);
-    font-size: 1rem;
-    font-style: italic;
-    max-width: 46ch;
-  }
+  .masthead-title .dot{ color: var(--gold); }
+  .masthead-meta{ font-family: var(--mono); font-size: 0.75rem; color: var(--dim); text-align: right; }
 
-  /* Market snapshot */
-  .snapshot{
-    border-left: 2px solid var(--gold);
-    padding: 0.9rem 0 0.9rem 1rem;
+  /* Hero: yield snapshot */
+  .hero{
+    background: var(--bg-raised);
+    border: 1px solid var(--panel-border);
+    border-radius: 4px;
+    padding: 1.5rem 1.5rem 1.25rem;
     margin-bottom: 2rem;
   }
-  .snapshot-narrative{
-    font-size: 1.05rem;
-    line-height: 1.6;
-    margin: 0 0 0.7rem;
+  .hero-primary{
+    display:flex; align-items: flex-end; justify-content: space-between;
+    gap: 1.5rem; flex-wrap: wrap;
+    margin-bottom: 1rem;
   }
-  .snapshot-yields{
-    display:flex;
-    flex-wrap: wrap;
-    gap: 1.2rem;
-    font-family: var(--mono);
-    font-size: 0.8rem;
-    margin-bottom: 0.6rem;
+  .hero-primary-stat .tenor-label{
+    font-family: var(--mono); font-size: 0.72rem; letter-spacing: 0.04em;
+    color: var(--gold); margin-bottom: 0.3rem;
   }
-  .snapshot-yields .yield-item .label{ color: var(--slate); }
-  .snapshot-yields .yield-item .value{ color: var(--paper); }
-  .snapshot-yields .yield-item .up{ color: #8FAE6E; }
-  .snapshot-yields .yield-item .down{ color: var(--err); }
-  .snapshot-attribution{
-    font-family: var(--mono);
-    font-size: 0.68rem;
-    color: var(--slate);
-    margin: 0;
+  .hero-primary-stat .value-row{ display:flex; align-items: baseline; gap: 0.6rem; }
+  .hero-primary-stat .big-value{
+    font-family: var(--mono); font-weight: 600; font-size: 3rem; line-height: 1;
+    color: var(--paper);
+  }
+  .hero-primary-stat .delta{ font-family: var(--mono); font-size: 1rem; font-weight: 500; }
+  .hero-primary-stat .delta.up{ color: var(--up); }
+  .hero-primary-stat .delta.down{ color: var(--down); }
+  .hero-primary-stat .delta.flat{ color: var(--dim); }
+  .hero-primary-stat .weekly{
+    font-family: var(--mono); font-size: 0.75rem; color: var(--dim); margin-top: 0.35rem;
+  }
+  .hero-chart{ flex: 1 1 220px; max-width: 320px; }
+  .sparkline{ width: 100%; height: 64px; display:block; }
+
+  .hero-narrative{
+    font-size: 1.05rem; line-height: 1.6; color: var(--paper-dim);
+    margin: 0.75rem 0 1.1rem;
+    padding-top: 1rem;
+    border-top: 1px solid var(--panel-border);
+  }
+
+  .hero-secondary{
+    display:flex; gap: 1rem; flex-wrap: wrap;
+    margin-bottom: 0.9rem;
+  }
+  .mini-stat{
+    flex: 1 1 160px;
+    background: var(--bg);
+    border: 1px solid var(--panel-border);
+    border-radius: 3px;
+    padding: 0.7rem 0.85rem;
+  }
+  .mini-stat .tenor-label{
+    font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.04em;
+    color: var(--dim); margin-bottom: 0.25rem;
+  }
+  .mini-stat .value-row{ display:flex; align-items: baseline; gap: 0.5rem; margin-bottom: 0.4rem; }
+  .mini-stat .value{ font-family: var(--mono); font-size: 1.3rem; font-weight: 600; color: var(--paper); }
+  .mini-stat .delta{ font-family: var(--mono); font-size: 0.8rem; }
+  .mini-stat .delta.up{ color: var(--up); }
+  .mini-stat .delta.down{ color: var(--down); }
+  .mini-stat .delta.flat{ color: var(--dim); }
+  .mini-stat .sparkline{ height: 32px; }
+
+  .hero-attribution{
+    font-family: var(--mono); font-size: 0.65rem; color: var(--dim); margin: 0;
+  }
+  .hero-attribution a{ color: var(--dim); }
+
+  .hero-unavailable{
+    font-family: var(--mono); font-size: 0.85rem; color: var(--dim);
   }
 
   /* Controls */
   .controls{
-    display:flex;
-    flex-wrap: wrap;
-    gap: 0.6rem 0.8rem;
-    align-items: center;
-    margin-bottom: 1.75rem;
-    font-family: var(--mono);
-    font-size: 0.78rem;
+    display:flex; flex-wrap: wrap; gap: 0.6rem 0.8rem; align-items: center;
+    margin-bottom: 1.5rem; font-family: var(--mono); font-size: 0.78rem;
   }
   .controls select, .controls input[type="search"]{
-    background: var(--ink-raised);
-    border: 1px solid var(--rule);
-    color: var(--paper);
-    font-family: var(--mono);
-    font-size: 0.78rem;
-    padding: 0.4rem 0.6rem;
-    border-radius: 2px;
+    background: var(--bg-raised); border: 1px solid var(--panel-border); color: var(--paper);
+    font-family: var(--mono); font-size: 0.78rem; padding: 0.4rem 0.6rem; border-radius: 2px;
   }
   .controls select:focus, .controls input:focus, button:focus{
-    outline: 2px solid var(--gold);
-    outline-offset: 1px;
+    outline: 2px solid var(--gold); outline-offset: 1px;
   }
-  .controls input[type="search"]{
-    flex: 1 1 160px;
-    min-width: 140px;
-  }
+  .controls input[type="search"]{ flex: 1 1 160px; min-width: 140px; }
   button.refresh{
-    background: transparent;
-    border: 1px solid var(--rule);
-    color: var(--paper-dim);
-    font-family: var(--mono);
-    font-size: 0.78rem;
-    padding: 0.4rem 0.7rem;
-    border-radius: 2px;
-    cursor: pointer;
+    background: transparent; border: 1px solid var(--panel-border); color: var(--paper-dim);
+    font-family: var(--mono); font-size: 0.78rem; padding: 0.4rem 0.7rem; border-radius: 2px; cursor: pointer;
   }
-  button.refresh:hover{
-    border-color: var(--gold);
-    color: var(--gold);
-  }
-  .count{
-    color: var(--slate);
-    margin-left: auto;
-  }
+  button.refresh:hover{ border-color: var(--gold); color: var(--gold); }
+  .count{ color: var(--dim); margin-left: auto; }
 
   /* Article list */
-  ul.feed{
-    list-style: none;
-    margin: 0; padding: 0;
-  }
-  li.article{
-    padding: 1.4rem 0;
-    border-bottom: 1px solid var(--rule);
-  }
+  ul.feed{ list-style: none; margin: 0; padding: 0; }
+  li.article{ padding: 1.3rem 0; border-bottom: 1px solid var(--panel-border); }
   li.article:first-child{ padding-top: 0; }
-
   .article-meta{
-    font-family: var(--mono);
-    font-size: 0.72rem;
-    color: var(--slate);
-    display:flex;
-    gap: 0.6rem;
-    flex-wrap: wrap;
-    margin-bottom: 0.4rem;
-    text-transform: none;
+    font-family: var(--mono); font-size: 0.72rem; color: var(--dim);
+    display:flex; gap: 0.6rem; flex-wrap: wrap; margin-bottom: 0.4rem;
   }
   .article-meta .region{ color: var(--gold); }
-
-  .article h2{
-    font-size: 1.15rem;
-    font-weight: 600;
-    line-height: 1.35;
-    margin: 0 0 0.4rem;
-  }
-  .article h2 a{
-    text-decoration: none;
-  }
-  .article h2 a:hover{
-    text-decoration: underline;
-    text-decoration-color: var(--gold);
-  }
-  .article p.summary{
-    color: var(--paper-dim);
-    font-size: 0.95rem;
-    line-height: 1.55;
-    margin: 0;
-    max-width: 68ch;
-  }
+  .article h2{ font-size: 1.12rem; font-weight: 600; line-height: 1.35; margin: 0 0 0.4rem; }
+  .article h2 a{ text-decoration: none; }
+  .article h2 a:hover{ text-decoration: underline; text-decoration-color: var(--gold); }
+  .article p.summary{ color: var(--paper-dim); font-size: 0.94rem; line-height: 1.55; margin: 0; max-width: 68ch; }
 
   /* States */
-  .state{
-    padding: 3rem 0;
-    text-align: center;
-    color: var(--slate);
-    font-family: var(--mono);
-    font-size: 0.85rem;
-  }
-  .state.error{ color: var(--err); }
-  .state a.retry{
-    display:inline-block;
-    margin-top: 0.8rem;
-    color: var(--gold);
-    cursor: pointer;
-  }
+  .state{ padding: 3rem 0; text-align: center; color: var(--dim); font-family: var(--mono); font-size: 0.85rem; }
+  .state.error{ color: var(--down); }
+  .state a.retry{ display:inline-block; margin-top: 0.8rem; color: var(--gold); cursor: pointer; }
 
   footer{
-    margin-top: 3rem;
-    padding-top: 1rem;
-    border-top: 1px solid var(--rule);
-    font-family: var(--mono);
-    font-size: 0.72rem;
-    color: var(--slate);
+    margin-top: 3rem; padding-top: 1rem; border-top: 1px solid var(--panel-border);
+    font-family: var(--mono); font-size: 0.72rem; color: var(--dim);
   }
 
-  @media (prefers-reduced-motion: reduce){
-    *{ transition: none !important; animation: none !important; }
-  }
+  @media (prefers-reduced-motion: reduce){ *{ transition: none !important; animation: none !important; } }
 </style>
 </head>
 <body>
   <div class="wrap">
     <header class="masthead">
-      <div class="masthead-row">
-        <h1 class="masthead-title">Coupon</h1>
-        <div class="masthead-meta" id="generated-at">loading —</div>
-      </div>
-      <p class="masthead-tagline">A daily briefing on rates, sovereign debt, and the politics that move them.</p>
+      <h1 class="masthead-title">Coupon<span class="dot">.</span></h1>
+      <div class="masthead-meta" id="generated-at">loading —</div>
     </header>
 
-    <section class="snapshot" id="market-snapshot" hidden></section>
+    <section id="market-snapshot"></section>
 
     <div class="controls">
       <select id="date-select" aria-label="Select date"></select>
@@ -251,12 +185,16 @@
     </div>
 
     <footer>
-      Sources: central bank press releases, Marketaux, NewsData.io. Updated once daily.
+      Sources: central bank press releases, Marketaux, NewsData.io. Yield data: FRED. Updated once daily.
     </footer>
   </div>
 
 <script>
 (function () {
+  // Articles arrive from the API already sorted newest-first. Flip this
+  // to false if you'd rather read oldest-to-newest (top to bottom).
+  const NEWEST_FIRST = true;
+
   const state = {
     articles: [],
     generatedAt: null,
@@ -268,6 +206,7 @@
   const el = {
     content: document.getElementById("content"),
     generatedAt: document.getElementById("generated-at"),
+    snapshot: document.getElementById("market-snapshot"),
     dateSelect: document.getElementById("date-select"),
     regionSelect: document.getElementById("region-select"),
     sourceSelect: document.getElementById("source-select"),
@@ -276,29 +215,137 @@
     resultCount: document.getElementById("result-count"),
   };
 
+  function escapeHtml(str) {
+    const d = document.createElement("div");
+    d.textContent = str == null ? "" : str;
+    return d.innerHTML;
+  }
+
   function fmtRelative(iso) {
     try {
       const then = new Date(iso).getTime();
-      const now = Date.now();
-      const diffMin = Math.round((now - then) / 60000);
+      const diffMin = Math.round((Date.now() - then) / 60000);
       if (diffMin < 1) return "just now";
       if (diffMin < 60) return diffMin + "m ago";
       const diffHr = Math.round(diffMin / 60);
       if (diffHr < 24) return diffHr + "h ago";
-      const diffDay = Math.round(diffHr / 24);
-      return diffDay + "d ago";
-    } catch (e) {
-      return "";
+      return Math.round(diffHr / 24) + "d ago";
+    } catch (e) { return ""; }
+  }
+
+  function deltaClass(bps) {
+    if (bps === null || bps === undefined) return "flat";
+    if (bps > 0.5) return "up";
+    if (bps < -0.5) return "down";
+    return "flat";
+  }
+  function deltaArrow(bps) {
+    const c = deltaClass(bps);
+    return c === "up" ? "▲" : c === "down" ? "▼" : "—";
+  }
+  function fmtBps(bps) {
+    if (bps === null || bps === undefined) return "n/a";
+    return (bps >= 0 ? "+" : "") + bps.toFixed(0) + "bp";
+  }
+
+  // --- Inline SVG sparkline, no chart library needed ---
+  function sparklineSvg(history, width, height, strokeWidth) {
+    if (!history || history.length < 2) return "";
+    const values = history.map(h => h.value);
+    const min = Math.min(...values), max = Math.max(...values);
+    const range = (max - min) || 1;
+    const pad = strokeWidth + 1;
+    const stepX = (width - pad * 2) / (history.length - 1);
+    const pts = values.map((v, i) => {
+      const x = pad + i * stepX;
+      const y = pad + (height - pad * 2) * (1 - (v - min) / range);
+      return [x, y];
+    });
+    const line = pts.map((p, i) => (i === 0 ? "M" : "L") + p[0].toFixed(1) + "," + p[1].toFixed(1)).join(" ");
+    const area = line + ` L${pts[pts.length - 1][0].toFixed(1)},${height - pad} L${pts[0][0].toFixed(1)},${height - pad} Z`;
+    const trendUp = values[values.length - 1] >= values[0];
+    const color = trendUp ? "var(--up)" : "var(--down)";
+    const gid = "grad" + Math.random().toString(36).slice(2, 9);
+    return (
+      '<svg class="sparkline" viewBox="0 0 ' + width + ' ' + height + '" preserveAspectRatio="none" role="img" aria-label="Yield trend, last ' + history.length + ' trading days">' +
+      '<defs><linearGradient id="' + gid + '" x1="0" y1="0" x2="0" y2="1">' +
+      '<stop offset="0%" stop-color="' + color + '" stop-opacity="0.35"/>' +
+      '<stop offset="100%" stop-color="' + color + '" stop-opacity="0"/>' +
+      '</linearGradient></defs>' +
+      '<path d="' + area + '" fill="url(#' + gid + ')" stroke="none"/>' +
+      '<path d="' + line + '" fill="none" stroke="' + color + '" stroke-width="' + strokeWidth + '" stroke-linejoin="round" stroke-linecap="round"/>' +
+      '</svg>'
+    );
+  }
+
+  function renderMarketSnapshot(snapshot) {
+    if (!snapshot || (!snapshot.narrative && !snapshot.yields)) {
+      el.snapshot.innerHTML = "";
+      return;
     }
+
+    const yields = snapshot.yields || {};
+    const tenY = yields.DGS10;
+    const others = Object.entries(yields).filter(([id]) => id !== "DGS10");
+
+    if (!tenY) {
+      el.snapshot.innerHTML =
+        '<div class="hero"><p class="hero-unavailable">' +
+        escapeHtml(snapshot.narrative || "Market data unavailable today.") +
+        '</p></div>';
+      return;
+    }
+
+    const primaryCls = deltaClass(tenY.change_1d_bps);
+    const primaryHtml =
+      '<div class="hero-primary">' +
+        '<div class="hero-primary-stat">' +
+          '<div class="tenor-label">US 10-YEAR TREASURY</div>' +
+          '<div class="value-row">' +
+            '<span class="big-value">' + tenY.value.toFixed(2) + '%</span>' +
+            '<span class="delta ' + primaryCls + '">' + deltaArrow(tenY.change_1d_bps) + ' ' + fmtBps(tenY.change_1d_bps) + ' today</span>' +
+          '</div>' +
+          (tenY.change_1w_bps !== null && tenY.change_1w_bps !== undefined
+            ? '<div class="weekly">' + fmtBps(tenY.change_1w_bps) + ' over the past week</div>'
+            : '') +
+        '</div>' +
+        '<div class="hero-chart">' + sparklineSvg(tenY.history, 320, 64, 2) + '</div>' +
+      '</div>';
+
+    const narrativeHtml = snapshot.narrative
+      ? '<p class="hero-narrative">' + escapeHtml(snapshot.narrative) + '</p>'
+      : "";
+
+    const secondaryHtml = others.length
+      ? '<div class="hero-secondary">' +
+          others.map(([id, y]) => {
+            const cls = deltaClass(y.change_1d_bps);
+            return (
+              '<div class="mini-stat">' +
+                '<div class="tenor-label">' + escapeHtml(y.label) + '</div>' +
+                '<div class="value-row">' +
+                  '<span class="value">' + y.value.toFixed(2) + '%</span>' +
+                  '<span class="delta ' + cls + '">' + deltaArrow(y.change_1d_bps) + ' ' + fmtBps(y.change_1d_bps) + '</span>' +
+                '</div>' +
+                sparklineSvg(y.history, 220, 32, 1.5) +
+              '</div>'
+            );
+          }).join("") +
+        '</div>'
+      : "";
+
+    const attributionHtml = snapshot.attribution
+      ? '<p class="hero-attribution">' + escapeHtml(snapshot.attribution) + '</p>'
+      : "";
+
+    el.snapshot.innerHTML =
+      '<div class="hero">' + primaryHtml + narrativeHtml + secondaryHtml + attributionHtml + '</div>';
   }
 
   function renderMeta() {
-    if (state.generatedAt) {
-      const d = new Date(state.generatedAt);
-      el.generatedAt.textContent = "updated " + d.toUTCString().slice(0, 22) + " UTC";
-    } else {
-      el.generatedAt.textContent = "";
-    }
+    el.generatedAt.textContent = state.generatedAt
+      ? "updated " + new Date(state.generatedAt).toUTCString().slice(0, 22) + " UTC"
+      : "";
   }
 
   function populateFilterOptions() {
@@ -308,7 +355,6 @@
       if (a.region) regions.add(a.region);
       if (a.source) sources.add(a.source);
     });
-
     function fill(select, values, currentValue, allLabel) {
       select.innerHTML = "";
       Array.from(values).forEach(v => {
@@ -319,7 +365,6 @@
         select.appendChild(opt);
       });
     }
-
     fill(el.regionSelect, regions, state.filters.region, "All regions");
     fill(el.sourceSelect, sources, state.filters.source, "All sources");
   }
@@ -328,8 +373,7 @@
     el.dateSelect.innerHTML = "";
     if (state.dates.length === 0) {
       const opt = document.createElement("option");
-      opt.value = "";
-      opt.textContent = "latest";
+      opt.value = ""; opt.textContent = "latest";
       el.dateSelect.appendChild(opt);
       return;
     }
@@ -344,7 +388,7 @@
 
   function applyFiltersAndRender() {
     const q = state.filters.query.trim().toLowerCase();
-    const filtered = state.articles.filter(a => {
+    let filtered = state.articles.filter(a => {
       if (state.filters.region !== "all" && a.region !== state.filters.region) return false;
       if (state.filters.source !== "all" && a.source !== state.filters.source) return false;
       if (q) {
@@ -353,6 +397,8 @@
       }
       return true;
     });
+
+    if (!NEWEST_FIRST) filtered = filtered.slice().reverse();
 
     el.resultCount.textContent = filtered.length + " / " + state.articles.length;
 
@@ -398,12 +444,6 @@
     el.content.appendChild(ul);
   }
 
-  function escapeHtml(str) {
-    const d = document.createElement("div");
-    d.textContent = str;
-    return d.innerHTML;
-  }
-
   function clearFilters() {
     state.filters = { region: "all", source: "all", query: "" };
     el.searchInput.value = "";
@@ -418,37 +458,7 @@
       const data = await resp.json();
       state.dates = data.dates || [];
       populateDateOptions();
-    } catch (e) {
-      // Non-fatal - date picker just won't populate.
-    }
-  }
-
-  function renderMarketSnapshot(snapshot) {
-    const el2 = document.getElementById("market-snapshot");
-    if (!snapshot || !snapshot.narrative) {
-      el2.hidden = true;
-      el2.innerHTML = "";
-      return;
-    }
-
-    const yields = snapshot.yields || {};
-    const yieldItems = Object.values(yields).map(y => {
-      const dir1d = y.change_1d_bps > 0 ? "up" : y.change_1d_bps < 0 ? "down" : "";
-      const sign1d = y.change_1d_bps > 0 ? "+" : "";
-      return (
-        '<span class="yield-item">' +
-        '<span class="label">' + escapeHtml(y.label) + '</span> ' +
-        '<span class="value">' + y.value.toFixed(2) + '%</span> ' +
-        '<span class="' + dir1d + '">' + sign1d + y.change_1d_bps.toFixed(0) + 'bp</span>' +
-        '</span>'
-      );
-    }).join("");
-
-    el2.hidden = false;
-    el2.innerHTML =
-      '<p class="snapshot-narrative">' + escapeHtml(snapshot.narrative) + '</p>' +
-      (yieldItems ? '<div class="snapshot-yields">' + yieldItems + '</div>' : '') +
-      (snapshot.attribution ? '<p class="snapshot-attribution">' + escapeHtml(snapshot.attribution) + '</p>' : '');
+    } catch (e) { /* non-fatal */ }
   }
 
   async function loadNews(date) {
@@ -478,7 +488,7 @@
   }
 
   function showError(message, detail) {
-    document.getElementById("market-snapshot").hidden = true;
+    el.snapshot.innerHTML = "";
     el.content.innerHTML =
       '<div class="state error">' + escapeHtml(message) +
       (detail ? '<br><span style="opacity:0.7">' + escapeHtml(detail) + '</span>' : '') +
@@ -487,18 +497,9 @@
     if (retry) retry.addEventListener("click", () => loadNews(state.date));
   }
 
-  el.regionSelect.addEventListener("change", e => {
-    state.filters.region = e.target.value;
-    applyFiltersAndRender();
-  });
-  el.sourceSelect.addEventListener("change", e => {
-    state.filters.source = e.target.value;
-    applyFiltersAndRender();
-  });
-  el.searchInput.addEventListener("input", e => {
-    state.filters.query = e.target.value;
-    applyFiltersAndRender();
-  });
+  el.regionSelect.addEventListener("change", e => { state.filters.region = e.target.value; applyFiltersAndRender(); });
+  el.sourceSelect.addEventListener("change", e => { state.filters.source = e.target.value; applyFiltersAndRender(); });
+  el.searchInput.addEventListener("input", e => { state.filters.query = e.target.value; applyFiltersAndRender(); });
   el.dateSelect.addEventListener("change", e => {
     const d = e.target.value;
     state.filters = { region: "all", source: "all", query: "" };
