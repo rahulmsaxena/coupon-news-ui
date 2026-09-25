@@ -1,0 +1,50 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Daily Bond & Transcript Summary</title>
+    <style>
+        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; color: #333; }
+        h1 { color: #111; font-size: 1.8rem; border-bottom: 2px solid #eaeaea; padding-bottom: 10px; }
+        .date { color: #666; font-size: 0.9rem; margin-bottom: 20px; }
+        .summary-box { background: #f9f9f9; border-left: 4px solid #0070f3; padding: 25px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
+        ul { padding-left: 20px; }
+        li { margin-bottom: 12px; }
+    </style>
+</head>
+<body>
+
+    <h1 id="transcript-title">Loading Bond Summary...</h1>
+    <div class="date" id="transcript-date"></div>
+    
+    <div class="summary-box">
+        <h3>Key Takeaways</h3>
+        <ul id="transcript-points">
+            <li>Fetching latest summary data from Google Drive...</li>
+        </ul>
+    </div>
+
+    <script>
+        // Fetches the JSON file updated daily by your Google Apps Script
+        fetch('./summary.json')
+            .then(response => response.json())
+            .then(data => {
+                document.getElementById('transcript-title').innerText = data.title;
+                document.getElementById('transcript-date').innerText = "Generated on: " + data.date;
+                
+                const ul = document.getElementById('transcript-points');
+                ul.innerHTML = "";
+                data.points.forEach(point => {
+                    const li = document.createElement('li');
+                    li.innerText = point;
+                    ul.appendChild(li);
+                });
+            })
+            .catch(error => {
+                document.getElementById('transcript-title').innerText = "Summary updating soon...";
+                console.error("Could not load summary.json", error);
+            });
+    </script>
+</body>
+</html>
