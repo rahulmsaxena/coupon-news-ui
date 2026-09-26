@@ -15,6 +15,11 @@ variable in Vercel's dashboard, never shipped to the browser.
 index.html      - the whole frontend (HTML + CSS + JS, no build step)
 api/news.js     - GET /api/news[?date=YYYY-MM-DD] -> that day's articles
 api/dates.js    - GET /api/dates -> available dates for the date picker
+bond_summary.html          - Bond Summary page (chart, headline list, single-page reader)
+api/bondsummary-list.js    - GET /api/bondsummary-list -> all bond summaries in one call,
+                             labeled by the trading day they cover (market_date), not the
+                             run date. Honors a "market_date" field if Apps Script sends one.
+api/bondsummary.js, api/bondsummary-dates.js, api/yields-ytd.js - unchanged
 package.json    - minimal, no dependencies (uses the platform's built-in fetch)
 ```
 
