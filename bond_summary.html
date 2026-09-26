@@ -186,6 +186,10 @@
   .state { padding: 80px 16px; text-align: center; color: var(--ink-3); }
   .state a { color: var(--gold); cursor: pointer; }
 
+  /* Embedded on point75.io: the page grows to fit, so the site handles scrolling and back-to-top */
+  .embedded .totop, .embedded .progress { display: none !important; }
+  .embedded .stickybar { position: static; }
+
   @media (max-width: 900px) {
     .lead .sum { grid-template-columns: 1fr; }
     .lead .sum .aside { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); padding-top: 10px; flex-direction: row; flex-wrap: wrap; gap: 4px 16px; justify-content: flex-start; }
@@ -305,6 +309,19 @@
   const totop = document.getElementById("totop");
   let embedded = false; try { embedded = window.self !== window.top; } catch (e) { embedded = true; }
   document.getElementById("site").hidden = embedded || !onVercel;
+
+  // When embedded on point75.io, the embed code there (see hostinger-embed.html) sizes this
+  // frame to fit its content, so the whole page scrolls as one. This page tells it how tall it
+  // is and when the view changes; the site-side script also provides the back-to-top button.
+  const tellHost = msg => { if (embedded) try { window.parent.postMessage(Object.assign({ p75: true }, msg), "*"); } catch (e) {} };
+  if (embedded) {
+    document.documentElement.classList.add("embedded");
+    let lastH = 0;
+    const sendHeight = () => { const h = Math.ceil(document.documentElement.getBoundingClientRect().height); if (Math.abs(h - lastH) > 1) { lastH = h; tellHost({ type: "height", h }); } };
+    if (window.ResizeObserver) new ResizeObserver(sendHeight).observe(document.documentElement);
+    window.addEventListener("load", sendHeight);
+    setInterval(sendHeight, 1500);
+  }
 
   let entries = [];            // [{id, date, key, generated, title, preview, md, text, minutes}] newest first
   const data = {};             // source key -> rows (oldest first), or null if it failed
@@ -477,7 +494,8 @@
     if (src) src.textContent = (c.note ? c.note + ". " : "") + `Latest ${fmtFull(parseDay(pts[pts.length - 1].date))}.`;
 
     const summaryDays = new Set(entries.map(e => e.id));
-    const W = box.clientWidth || 520, H = window.innerWidth < 760 ? 200 : 220;
+    // Charts grow with the space they get: 200px on a phone, up to 340px on a wide screen
+    const W = box.clientWidth || 520, H = window.innerWidth < 760 ? 200 : Math.round(Math.min(340, Math.max(220, W * 0.46)));
     const m = { t: 12, r: 12, b: 26, l: c.unit === "%" ? 46 : 40 };
     const vals = pts.flatMap(p => c.series.map(s => p[s.key])).filter(v => v != null);
     if (c.zeroLine) vals.push(0);
@@ -697,13 +715,16 @@
     const e = id && entries.find(x => x.id === id || x.key === id);   // old run-date links still work
     if (e) {
       if (current === "list") listScrollY = window.scrollY;
+      const fromList = current === "list";
       renderArticle(e);
       window.scrollTo({ top: 0, behavior: "instant" });
+      tellHost({ type: "view", view: "article", fromList });
       current = e.id;
     } else {
       const fromArticle = current && current !== "list";
       renderList();
       window.scrollTo({ top: fromArticle ? listScrollY : 0, behavior: "instant" });
+      if (current !== null) tellHost({ type: "view", view: "list", fromArticle });
       current = "list";
     }
   }
