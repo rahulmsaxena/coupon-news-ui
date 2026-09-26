@@ -1,50 +1,582 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Daily Bond & Transcript Summary</title>
-    <style>
-        body { font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif; max-width: 800px; margin: 40px auto; padding: 0 20px; line-height: 1.6; color: #333; }
-        h1 { color: #111; font-size: 1.8rem; border-bottom: 2px solid #eaeaea; padding-bottom: 10px; }
-        .date { color: #666; font-size: 0.9rem; margin-bottom: 20px; }
-        .summary-box { background: #f9f9f9; border-left: 4px solid #0070f3; padding: 25px; border-radius: 4px; box-shadow: 0 2px 4px rgba(0,0,0,0.05); }
-        ul { padding-left: 20px; }
-        li { margin-bottom: 12px; }
-    </style>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Bond Summary | Point75</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<!--
+  Bond Summary page for point75.io/bondsummary.
+  Data: /api/bondsummary-list (summaries, labeled by trading day) and /api/yields-ytd (FRED yields).
+  Works served from this Vercel project, or pasted/embedded on point75.io (it calls the
+  Vercel API by absolute URL when it isn't running on Vercel).
+-->
+<style>
+  :root {
+    --bg: #fbf9f5;
+    --surface: #ffffff;
+    --band: #f4efe6;
+    --ink: #1c2230;
+    --ink-2: #4a5263;
+    --ink-3: #7b8292;
+    --line: #e7e1d6;
+    --s2: #7f8a9c;          /* 2Y  */
+    --s10: #1f3a68;         /* 10Y */
+    --s30: #a67c2e;         /* 30Y */
+    --up: #b4452f;
+    --down: #2f7a55;
+    --focus: #2c5fd6;
+    --shadow: 0 1px 2px rgba(28,34,48,.05), 0 4px 16px rgba(28,34,48,.05);
+  }
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      --bg: #14171d; --surface: #1b1f27; --band: #1f242d; --ink: #eceef2; --ink-2: #b9bfcb;
+      --ink-3: #8a91a0; --line: #2d333e; --s2: #8e97a8; --s10: #8fb0ea; --s30: #d9b064;
+      --up: #ec8a74; --down: #72c79b; --focus: #8fb0ea; --shadow: none;
+    }
+  }
+  :root[data-theme="dark"] {
+    --bg: #14171d; --surface: #1b1f27; --band: #1f242d; --ink: #eceef2; --ink-2: #b9bfcb;
+    --ink-3: #8a91a0; --line: #2d333e; --s2: #8e97a8; --s10: #8fb0ea; --s30: #d9b064;
+    --up: #ec8a74; --down: #72c79b; --focus: #8fb0ea; --shadow: none;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+  .wrap { max-width: 1040px; margin: 0 auto; padding: 0 16px; }
+  [hidden] { display: none !important; }
+
+  /* Site header (only shown when this page is opened directly, not when embedded) */
+  .site { background: var(--band); border-bottom: 1px solid var(--line); }
+  .site .wrap { display: flex; align-items: center; justify-content: space-between; height: 72px; }
+  .brand { font-family: "Source Serif 4", Georgia, serif; font-weight: 600; font-size: 1.15rem; text-decoration: none; color: var(--s10); }
+  .site nav { display: flex; gap: 28px; font-size: .95rem; }
+  .site nav a { text-decoration: none; color: var(--ink-2); padding: 4px 0; }
+  .site nav a[aria-current] { color: var(--ink); border-bottom: 2px solid var(--ink); }
+
+  /* Progress + sticky bar (article view) */
+  .progress { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: var(--s30); z-index: 30; transition: width .1s linear; }
+  .stickybar { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid transparent; transition: border-color .2s; }
+  .stickybar.scrolled { border-bottom-color: var(--line); }
+  .stickybar .wrap { display: flex; align-items: center; gap: 12px; height: 52px; max-width: 732px; }
+  .back { display: inline-flex; align-items: center; gap: 6px; padding: 6px 8px; margin-left: -8px; border-radius: 6px; font-size: .92rem; font-weight: 500; color: var(--ink-2); text-decoration: none; }
+  .back:hover { background: var(--band); color: var(--ink); }
+  .stickybar .crumb { margin-left: auto; font-size: .85rem; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+
+  /* List view */
+  .hero { padding: 36px 0 4px; }
+  .eyebrow { font-size: .75rem; letter-spacing: .1em; text-transform: uppercase; color: var(--s30); font-weight: 600; }
+  .hero h1 { font-family: "Source Serif 4", Georgia, serif; font-weight: 600; font-size: clamp(1.7rem, 3.5vw, 2.3rem); margin: 6px 0 4px; line-height: 1.2; }
+  .hero p { margin: 0; color: var(--ink-2); }
+
+  .chartcard { margin: 22px 0 36px; background: var(--surface); border: 1px solid var(--line); border-radius: 14px; box-shadow: var(--shadow); padding: 20px; display: grid; grid-template-columns: 1fr 230px; gap: 24px; }
+  .chart-head { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin-bottom: 10px; }
+  .chart-head h2 { margin: 0; font-size: 1rem; font-weight: 600; }
+  .seg { display: inline-flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; }
+  .seg button { background: none; border: 0; padding: 4px 11px; font-size: .8rem; cursor: pointer; color: var(--ink-2); }
+  .seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+  .legend { display: flex; gap: 14px; font-size: .8rem; color: var(--ink-2); margin-bottom: 4px; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+  .legend .dotkey { display: inline-block; width: 7px; height: 7px; border-radius: 50%; border: 2px solid var(--s10); background: var(--surface); vertical-align: 0; margin-right: 6px; }
+  .chartbox { position: relative; }
+  .chartbox svg { display: block; width: 100%; height: 250px; overflow: visible; }
+  .axis text { fill: var(--ink-3); font-size: 11px; font-family: Inter, sans-serif; }
+  .grid line { stroke: var(--line); }
+  .tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font-size: .78rem; line-height: 1.45; padding: 7px 10px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, calc(-100% - 10px)); opacity: 0; transition: opacity .1s; z-index: 2; }
+  .tip .open { opacity: .75; }
+  .source { font-size: .74rem; color: var(--ink-3); margin-top: 8px; }
+  .stats { display: grid; gap: 10px; align-content: start; }
+  .stat { border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px; }
+  .stat .k { font-size: .78rem; color: var(--ink-3); }
+  .stat .v { font-size: 1.45rem; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.25; }
+  .stat .d { font-size: .78rem; font-variant-numeric: tabular-nums; }
+  .d.up { color: var(--up); } .d.down { color: var(--down); } .d.flat { color: var(--ink-3); }
+
+  .listhead { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-bottom: 8px; flex-wrap: wrap; }
+  .listhead h2 { font-size: 1.05rem; margin: 0; font-weight: 600; }
+  .filters input { font: inherit; font-size: .9rem; padding: 7px 10px; border: 1px solid var(--line); border-radius: 8px; background: var(--surface); color: var(--ink); width: 200px; }
+
+  .list { list-style: none; margin: 0 0 64px; padding: 0; border-top: 1px solid var(--line); }
+  .row { border-bottom: 1px solid var(--line); }
+  .row a { display: grid; grid-template-columns: 120px 1fr auto; gap: 20px; align-items: start; padding: 20px 8px; text-decoration: none; border-radius: 8px; transition: background .15s; }
+  .row a:hover { background: var(--band); }
+  .row .when { font-size: .85rem; color: var(--ink-3); padding-top: 3px; font-variant-numeric: tabular-nums; }
+  .row .when b { display: block; color: var(--ink); font-weight: 600; font-size: .95rem; }
+  .row h3 { font-family: "Source Serif 4", Georgia, serif; font-size: 1.25rem; font-weight: 600; margin: 0 0 4px; line-height: 1.3; }
+  .row p { margin: 0; color: var(--ink-2); font-size: .93rem; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .row .go { font-size: .88rem; font-weight: 500; color: var(--s10); white-space: nowrap; padding-top: 4px; }
+  .row.read h3, .row.read p { opacity: .62; }
+  .badge { display: inline-block; font-family: Inter, sans-serif; font-size: .66rem; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; padding: 2px 7px; border-radius: 99px; background: var(--s10); color: var(--bg); margin-left: 8px; vertical-align: 3px; }
+  .readmark { font-size: .75rem; color: var(--ink-3); margin-left: 8px; font-family: Inter, sans-serif; font-weight: 400; vertical-align: 2px; }
+  .empty { padding: 40px 8px; color: var(--ink-3); }
+
+  /* Article view */
+  .article { max-width: 700px; margin: 0 auto; padding: 28px 16px 40px; }
+  .article h1 { font-family: "Source Serif 4", Georgia, serif; font-weight: 600; font-size: clamp(1.8rem, 4vw, 2.4rem); line-height: 1.2; margin: 8px 0 10px; }
+  .meta { color: var(--ink-3); font-size: .88rem; }
+  .snap { display: flex; gap: 18px; flex-wrap: wrap; margin: 18px 0 0; padding: 12px 14px; border: 1px solid var(--line); border-radius: 10px; background: var(--surface); font-size: .85rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .snap b { color: var(--ink); font-weight: 600; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; }
+  .toc button { background: var(--band); border: 1px solid var(--line); border-radius: 99px; padding: 5px 12px; font-size: .82rem; cursor: pointer; color: var(--ink-2); }
+  .toc button:hover { color: var(--ink); border-color: var(--ink-3); }
+  .body { font-family: "Source Serif 4", Georgia, serif; font-size: 1.14rem; line-height: 1.7; margin-top: 26px; }
+  .body h2 { font-family: Inter, sans-serif; font-size: 1.2rem; font-weight: 600; margin: 2em 0 .5em; scroll-margin-top: 70px; }
+  .body h3 { font-family: Inter, sans-serif; font-size: 1.02rem; font-weight: 600; margin: 1.6em 0 .4em; scroll-margin-top: 70px; }
+  .body p { margin: 0 0 1.1em; }
+  .body ul, .body ol { padding-left: 1.3em; margin: 0 0 1.1em; }
+  .body li { margin-bottom: .45em; }
+  .body strong { font-weight: 600; }
+  .body blockquote { margin: 1.4em 0; padding: 2px 0 2px 18px; border-left: 3px solid var(--s30); color: var(--ink-2); }
+  .body table { border-collapse: collapse; width: 100%; font-family: Inter, sans-serif; font-size: .9rem; margin: 1.2em 0; display: block; overflow-x: auto; }
+  .body th, .body td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left; }
+  .body hr { border: 0; border-top: 1px solid var(--line); margin: 2em 0; }
+
+  .pager { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line); }
+  .pager a { display: block; text-decoration: none; border: 1px solid var(--line); border-radius: 10px; padding: 12px 14px; background: var(--surface); transition: border-color .15s; }
+  .pager a:hover { border-color: var(--ink-3); }
+  .pager .lbl { font-size: .78rem; color: var(--ink-3); }
+  .pager .t { font-size: .92rem; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .pager .next { text-align: right; grid-column: 2; }
+  .allbtn { display: block; width: max-content; margin: 20px auto 0; font-size: .9rem; color: var(--s10); font-weight: 500; }
+  .kbd { text-align: center; color: var(--ink-3); font-size: .78rem; margin-top: 18px; }
+  kbd { font: inherit; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; }
+
+  .totop { position: fixed; right: 20px; bottom: 20px; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--line); background: var(--surface); box-shadow: var(--shadow); cursor: pointer; display: grid; place-items: center; opacity: 0; transform: translateY(10px); pointer-events: none; transition: opacity .2s, transform .2s; z-index: 25; }
+  .totop.show { opacity: 1; transform: none; pointer-events: auto; }
+  .totop svg { width: 18px; height: 18px; stroke: var(--ink); }
+
+  .state { padding: 80px 16px; text-align: center; color: var(--ink-3); }
+  .state a { color: var(--s10); cursor: pointer; }
+
+  @media (max-width: 760px) {
+    .site nav { gap: 14px; font-size: .85rem; }
+    .brand { font-size: 1rem; }
+    .chartcard { grid-template-columns: 1fr; padding: 16px; gap: 16px; }
+    .stats { grid-template-columns: repeat(2, 1fr); }
+    .stat { padding: 10px; } .stat .v { font-size: 1.15rem; }
+    .chartbox svg { height: 210px; }
+    .row a { grid-template-columns: 1fr; gap: 6px; padding: 16px 4px; }
+    .row .when b { display: inline; margin-right: 6px; }
+    .row .go { display: none; }
+    .filters input { width: 150px; }
+    .body { font-size: 1.06rem; }
+    .totop { right: 14px; bottom: 14px; }
+    .kbd { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } }
+</style>
 </head>
 <body>
 
-    <h1 id="transcript-title">Loading Bond Summary...</h1>
-    <div class="date" id="transcript-date"></div>
-    
-    <div class="summary-box">
-        <h3>Key Takeaways</h3>
-        <ul id="transcript-points">
-            <li>Fetching latest summary data from Google Drive...</li>
-        </ul>
-    </div>
+<div class="progress" id="progress" hidden></div>
 
-    <script>
-        // Fetches the JSON file updated daily by your Google Apps Script
-        fetch('./summary.json')
-            .then(response => response.json())
-            .then(data => {
-                document.getElementById('transcript-title').innerText = data.title;
-                document.getElementById('transcript-date').innerText = "Generated on: " + data.date;
-                
-                const ul = document.getElementById('transcript-points');
-                ul.innerHTML = "";
-                data.points.forEach(point => {
-                    const li = document.createElement('li');
-                    li.innerText = point;
-                    ul.appendChild(li);
-                });
-            })
-            .catch(error => {
-                document.getElementById('transcript-title').innerText = "Summary updating soon...";
-                console.error("Could not load summary.json", error);
-            });
-    </script>
+<header class="site" id="site" hidden>
+  <div class="wrap">
+    <a class="brand" href="https://point75.io/">Paper &amp; Cadence</a>
+    <nav aria-label="Main">
+      <a href="https://point75.io/journal">Journal</a>
+      <a href="https://point75.io/news">News</a>
+      <a href="#/" aria-current="page">Bond Summary</a>
+    </nav>
+  </div>
+</header>
+
+<main id="app"><div class="state">Loading bond summaries…</div></main>
+
+<button class="totop" id="totop" aria-label="Back to top" title="Back to top">
+  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+
+<script>
+(function () {
+  "use strict";
+
+  // Same origin when served from the Vercel project (or `vercel dev`); absolute URL when
+  // this code runs anywhere else, e.g. pasted into point75.io.
+  const VERCEL_API = "https://coupon-news-ui.vercel.app";
+  const onVercel = /\.vercel\.app$/.test(location.hostname) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  const API = onVercel ? "" : VERCEL_API;
+
+  const app = document.getElementById("app");
+  const progress = document.getElementById("progress");
+  const totop = document.getElementById("totop");
+  let embedded = false; try { embedded = window.self !== window.top; } catch (e) { embedded = true; }
+  document.getElementById("site").hidden = embedded || !onVercel;
+
+  let entries = [];            // [{id, date, key, generated, title, preview, md, text, minutes}] newest first
+  let yields = null;           // {DGS2:{label,history:[{date,value}]}, ...}
+  let range = "3M";
+  let query = "";
+  let listScrollY = 0;
+  let current = null;
+
+  /* ---------- helpers ---------- */
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  };
+  const readSet = new Set(store.get("bondsummary:read", []));
+  const markRead = id => { readSet.add(id); store.set("bondsummary:read", [...readSet].slice(-200)); };
+  range = store.get("bondsummary:range", "3M");
+
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  // "2026-09-25" -> local Date for Sep 25. (new Date("2026-09-25") would be UTC midnight,
+  // which displays as Sep 24 in US time zones.)
+  const parseDay = s => { const m = String(s || "").match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+  const fmtLong = d => d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const fmtFull = d => d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  const fmtDay = d => d.toLocaleDateString("en-US", { weekday: "short" });
+  const fmtShort = d => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const fmtStamp = ts => new Date(ts).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+
+  function plainText(md) {
+    return md.replace(/```[\s\S]*?```/g, " ").replace(/^#+\s.*$/gm, " ")
+      .replace(/^\s*(?:[-*+]|\d+\.|>)\s+/gm, "").replace(/[*_`|~]+/g, "")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/\s+/g, " ").trim();
+  }
+
+  function renderMarkdown(md) {
+    if (window.marked) {
+      const html = window.marked.parse(md, { gfm: true, breaks: false });
+      return window.DOMPurify ? window.DOMPurify.sanitize(html) : html;
+    }
+    // Fallback if the CDN is unreachable.
+    const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/(^|\W)\*(?!\s)(.+?)\*(?=\W|$)/g, "$1<em>$2</em>");
+    return md.split(/\n{2,}/).map(block => {
+      const lines = block.split("\n").filter(l => l.trim());
+      if (!lines.length) return "";
+      const h = lines[0].match(/^(#{1,4})\s+(.*)/);
+      if (h) { const lvl = Math.max(2, Math.min(3, h[1].length)); const rest = lines.slice(1).join("\n");
+        return `<h${lvl}>${inline(h[2])}</h${lvl}>` + (rest ? renderMarkdown(rest) : ""); }
+      if (lines.every(l => /^\s*[-*+]\s/.test(l))) return "<ul>" + lines.map(l => "<li>" + inline(l.replace(/^\s*[-*+]\s/, "")) + "</li>").join("") + "</ul>";
+      if (lines.every(l => /^\s*\d+\.\s/.test(l))) return "<ol>" + lines.map(l => "<li>" + inline(l.replace(/^\s*\d+\.\s/, "")) + "</li>").join("") + "</ol>";
+      if (lines.every(l => /^\s*>/.test(l))) return "<blockquote><p>" + inline(lines.map(l => l.replace(/^\s*>\s?/, "")).join(" ")) + "</p></blockquote>";
+      if (/^(-{3,}|\*{3,})$/.test(block.trim())) return "<hr>";
+      return "<p>" + inline(lines.join(" ")) + "</p>";
+    }).join("");
+  }
+
+  /* ---------- data ---------- */
+  function toEntries(list) {
+    return list.map(s => {
+      const md = String(s.summary || "").replace(/^#\s+.+\n*/, "").trim();
+      const text = plainText(md);
+      return {
+        id: s.market_date, date: parseDay(s.market_date), key: s.key,
+        generated: s.generated_at, title: s.title || "Bond market summary",
+        preview: s.preview || text.slice(0, 260), md, text,
+        minutes: Math.max(1, Math.round(text.split(" ").length / 230))
+      };
+    }).filter(e => e.date).sort((a, b) => b.date - a.date);
+  }
+
+  const SERIES = [
+    { id: "DGS2", short: "2Y", label: "2-year", color: "var(--s2)" },
+    { id: "DGS10", short: "10Y", label: "10-year", color: "var(--s10)" },
+    { id: "DGS30", short: "30Y", label: "30-year", color: "var(--s30)" },
+  ].filter(() => true);
+
+  // Rows keyed by date: [{date:"2026-09-24", DGS2:4.87, DGS10:5.18, DGS30:5.47}, ...] oldest first
+  function yieldRows() {
+    if (!yields) return [];
+    const map = new Map();
+    SERIES.forEach(s => ((yields[s.id] || {}).history || []).forEach(h => {
+      if (h.value == null || isNaN(h.value)) return;
+      if (!map.has(h.date)) map.set(h.date, { date: h.date });
+      map.get(h.date)[s.id] = +h.value;
+    }));
+    return [...map.values()].sort((a, b) => a.date.localeCompare(b.date));
+  }
+  function rowsInRange(rows) {
+    if (!rows.length) return rows;
+    const last = parseDay(rows[rows.length - 1].date);
+    const from = new Date(last);
+    if (range === "1M") from.setMonth(from.getMonth() - 1);
+    else if (range === "3M") from.setMonth(from.getMonth() - 3);
+    else from.setMonth(0, 1);
+    return rows.filter(r => parseDay(r.date) >= from);
+  }
+  const rowOn = (rows, id) => rows.find(r => r.date === id);
+
+  /* ---------- chart ---------- */
+  function chartHTML() {
+    const rows = yieldRows();
+    if (!rows.length) return "";
+    const last = rows[rows.length - 1], prev = rows[rows.length - 2];
+    const stat = (label, v, pv, isSpread) => {
+      if (v == null) return "";
+      let d = `<div class="d flat">as of ${fmtShort(parseDay(last.date))}</div>`;
+      if (pv != null) {
+        const bp = Math.round((v - pv) * 100);
+        const cls = bp > 0 ? "up" : bp < 0 ? "down" : "flat";
+        d = `<div class="d ${cls}">${bp > 0 ? "▲ +" : bp < 0 ? "▼ " : "– "}${bp} bp on the day</div>`;
+      }
+      return `<div class="stat"><div class="k">${label}</div><div class="v">${isSpread ? Math.round(v * 100) + " bp" : v.toFixed(2) + "%"}</div>${d}</div>`;
+    };
+    const spread = r => r && r.DGS10 != null && r.DGS2 != null ? r.DGS10 - r.DGS2 : null;
+    return `
+    <section class="chartcard" aria-label="Treasury yields">
+      <div>
+        <div class="chart-head">
+          <h2>Treasury yields</h2>
+          <div class="seg" role="group" aria-label="Chart range">
+            ${["1M", "3M", "YTD"].map(r => `<button data-range="${r}" aria-pressed="${r === range}">${r}</button>`).join("")}
+          </div>
+        </div>
+        <div class="legend">
+          ${SERIES.map(s => `<span><i style="background:${s.color}"></i>${s.label}</span>`).join("")}
+          <span><span class="dotkey"></span>Day with a summary (click to read)</span>
+        </div>
+        <div class="chartbox" id="chartbox"></div>
+        <div class="source">Daily closing yields from FRED, latest ${fmtFull(parseDay(last.date))}.</div>
+      </div>
+      <div class="stats">
+        ${stat("10-year", last.DGS10, prev && prev.DGS10)}
+        ${stat("30-year", last.DGS30, prev && prev.DGS30)}
+        ${stat("2-year", last.DGS2, prev && prev.DGS2)}
+        ${stat("10Y – 2Y curve", spread(last), spread(prev), true)}
+      </div>
+    </section>`;
+  }
+
+  function drawChart() {
+    const box = document.getElementById("chartbox");
+    if (!box) return;
+    const pts = rowsInRange(yieldRows());
+    if (!pts.length) { box.innerHTML = ""; return; }
+    const summaryDays = new Set(entries.map(e => e.id));
+    const W = box.clientWidth || 600, H = window.innerWidth < 760 ? 210 : 250;
+    const m = { t: 12, r: 12, b: 26, l: 44 };
+    const vals = pts.flatMap(p => SERIES.map(s => p[s.id])).filter(v => v != null);
+    let lo = Math.min(...vals), hi = Math.max(...vals);
+    const pad = Math.max(0.05, (hi - lo) * 0.1); lo -= pad; hi += pad;
+    const x = i => pts.length === 1 ? (m.l + W - m.r) / 2 : m.l + i * (W - m.l - m.r) / (pts.length - 1);
+    const y = v => m.t + (hi - v) * (H - m.t - m.b) / (hi - lo);
+
+    const grid = [];
+    for (let i = 0; i <= 4; i++) {
+      const v = lo + (hi - lo) * i / 4;
+      grid.push(`<line x1="${m.l}" x2="${W - m.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/>`,
+                `<text x="${m.l - 8}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${v.toFixed(2)}%</text>`);
+    }
+    // Month-ish x labels, spaced by pixel width
+    const maxLabels = Math.max(2, Math.floor((W - m.l - m.r) / 70));
+    const step = Math.max(1, Math.ceil(pts.length / maxLabels));
+    const xl = pts.map((p, i) => {
+      const lastIdx = pts.length - 1;
+      const show = i === lastIdx || (i % step === 0 && lastIdx - i >= step * 0.6);
+      return show ? `<text x="${x(i).toFixed(1)}" y="${H - 6}" text-anchor="${i === lastIdx ? "end" : "middle"}">${fmtShort(parseDay(p.date))}</text>` : "";
+    }).join("");
+
+    const lines = SERIES.map(s => {
+      const seg = pts.map((p, i) => p[s.id] == null ? null : [x(i), y(p[s.id])]).filter(Boolean);
+      if (!seg.length) return "";
+      const d = seg.map((q, i) => (i ? "L" : "M") + q[0].toFixed(1) + " " + q[1].toFixed(1)).join(" ");
+      const lastPt = seg[seg.length - 1];
+      return `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.id === "DGS10" ? 2.5 : 1.75}" stroke-linejoin="round" stroke-linecap="round"/>
+              <circle cx="${lastPt[0].toFixed(1)}" cy="${lastPt[1].toFixed(1)}" r="3.5" fill="${s.color}"/>`;
+    }).join("");
+
+    // Markers on the 10Y line for days that have a summary
+    const marks = pts.map((p, i) => summaryDays.has(p.date) && p.DGS10 != null
+      ? `<circle cx="${x(i).toFixed(1)}" cy="${y(p.DGS10).toFixed(1)}" r="4.5" fill="var(--surface)" stroke="var(--s10)" stroke-width="2"/>` : "").join("");
+
+    box.innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Line chart of 2-, 10- and 30-year Treasury yields">
+        <g class="grid axis">${grid.join("")}</g>
+        <g class="axis">${xl}</g>
+        <line id="hoverline" y1="${m.t}" y2="${H - m.b}" stroke="var(--ink-3)" stroke-dasharray="3 3" opacity="0"/>
+        ${lines}${marks}
+        <rect x="${m.l}" y="0" width="${W - m.l - m.r}" height="${H - m.b}" fill="transparent" id="hit"/>
+      </svg>
+      <div class="tip" id="tip"></div>`;
+    box.querySelector("svg").style.height = H + "px";
+
+    const hit = box.querySelector("#hit"), tip = box.querySelector("#tip"), hl = box.querySelector("#hoverline");
+    const nearest = ev => {
+      const r = box.getBoundingClientRect(), px = (ev.clientX - r.left) * (W / r.width);
+      let best = 0; pts.forEach((p, i) => { if (Math.abs(x(i) - px) < Math.abs(x(best) - px)) best = i; });
+      return best;
+    };
+    const show = ev => {
+      const i = nearest(ev), p = pts[i], r = box.getBoundingClientRect();
+      const has = summaryDays.has(p.date);
+      hl.setAttribute("x1", x(i)); hl.setAttribute("x2", x(i)); hl.setAttribute("opacity", 1);
+      tip.innerHTML = `<b>${fmtFull(parseDay(p.date))}</b><br>` +
+        SERIES.filter(s => p[s.id] != null).map(s => `${s.short} ${p[s.id].toFixed(2)}%`).join(" · ") +
+        (has ? `<br><span class="open">Click to read that day's summary</span>` : "");
+      const left = Math.min(Math.max(x(i) * r.width / W, 110), r.width - 110);
+      tip.style.left = left + "px";
+      tip.style.top = (y(Math.max(...SERIES.map(s => p[s.id] ?? lo))) * r.height / H) + "px";
+      tip.style.opacity = 1;
+      hit.style.cursor = has ? "pointer" : "default";
+    };
+    hit.addEventListener("mousemove", show);
+    hit.addEventListener("mouseleave", () => { tip.style.opacity = 0; hl.setAttribute("opacity", 0); });
+    hit.addEventListener("click", ev => { const p = pts[nearest(ev)]; if (summaryDays.has(p.date)) location.hash = "#/" + p.date; else show(ev); });
+  }
+
+  /* ---------- list view ---------- */
+  function filtered() {
+    const q = query.trim().toLowerCase();
+    return q ? entries.filter(e => e.title.toLowerCase().includes(q) || e.text.toLowerCase().includes(q)) : entries;
+  }
+
+  function rowsHTML() {
+    const rows = filtered();
+    if (!rows.length) return `<li class="empty">${entries.length ? "No summaries match your search." : "No summaries yet. The first one will appear after the next run."}</li>`;
+    return rows.map(e => {
+      const isLatest = e === entries[0], isRead = readSet.has(e.id) && !isLatest;
+      return `<li class="row${isRead ? " read" : ""}">
+        <a href="#/${e.id}">
+          <div class="when"><b>${fmtShort(e.date)}</b>${fmtDay(e.date)} · ${e.minutes} min</div>
+          <div>
+            <h3>${esc(e.title)}${isLatest ? '<span class="badge">Latest</span>' : ""}${isRead ? '<span class="readmark">✓ Read</span>' : ""}</h3>
+            <p>${esc(e.preview)}</p>
+          </div>
+          <span class="go">Read →</span>
+        </a></li>`;
+    }).join("");
+  }
+
+  function renderList() {
+    document.title = "Bond Summary | Point75";
+    progress.hidden = true;
+    app.innerHTML = `
+      <div class="wrap">
+        <section class="hero">
+          <div class="eyebrow">Daily bond market summary</div>
+          <h1>Bond Summary</h1>
+          <p>${entries.length ? `Latest covers trading on ${fmtFull(entries[0].date)}` : ""}</p>
+        </section>
+        ${chartHTML()}
+        <div class="listhead">
+          <h2>All summaries</h2>
+          ${entries.length > 6 ? `<div class="filters"><input type="search" id="q" placeholder="Search summaries" value="${esc(query)}" aria-label="Search summaries"></div>` : ""}
+        </div>
+        <ul class="list" id="list">${rowsHTML()}</ul>
+      </div>`;
+    drawChart();
+    const q = document.getElementById("q");
+    if (q) q.addEventListener("input", () => { query = q.value; document.getElementById("list").innerHTML = rowsHTML(); });
+    app.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
+      range = b.dataset.range; store.set("bondsummary:range", range);
+      app.querySelectorAll(".seg button").forEach(o => o.setAttribute("aria-pressed", o === b));
+      drawChart();
+    }));
+  }
+
+  /* ---------- article view ---------- */
+  function renderArticle(e) {
+    const i = entries.indexOf(e);
+    const newer = entries[i - 1], older = entries[i + 1];
+    document.title = e.title + " | Bond Summary";
+    markRead(e.id);
+
+    const rows = yieldRows(), r = rowOn(rows, e.id);
+    const snap = r ? `<div class="snap"><span>Close on ${fmtShort(e.date)}:</span>` +
+      SERIES.filter(s => r[s.id] != null).map(s => `<span>${s.short} <b>${r[s.id].toFixed(2)}%</b></span>`).join("") +
+      (r.DGS10 != null && r.DGS2 != null ? `<span>10Y–2Y <b>${Math.round((r.DGS10 - r.DGS2) * 100)} bp</b></span>` : "") + `</div>` : "";
+
+    app.innerHTML = `
+      <div class="stickybar" id="stickybar"><div class="wrap">
+        <a class="back" href="#/">← All summaries</a>
+        <span class="crumb">${fmtLong(e.date)}</span>
+      </div></div>
+      <article class="article">
+        <div class="eyebrow">Bond market summary · ${fmtLong(e.date)}</div>
+        <h1>${esc(e.title)}</h1>
+        <div class="meta">Covers trading on ${fmtFull(e.date)} · ${e.minutes} min read${e.generated ? ` · Published ${fmtStamp(e.generated)}` : ""}</div>
+        ${snap}
+        <ul class="toc" id="toc" hidden></ul>
+        <div class="body" id="body">${renderMarkdown(e.md)}</div>
+        <nav class="pager" aria-label="More summaries">
+          ${older ? `<a href="#/${older.id}"><div class="lbl">← Previous · ${fmtShort(older.date)}</div><div class="t">${esc(older.title)}</div></a>` : "<span></span>"}
+          ${newer ? `<a class="next" href="#/${newer.id}"><div class="lbl">Next · ${fmtShort(newer.date)} →</div><div class="t">${esc(newer.title)}</div></a>` : ""}
+        </nav>
+        <a class="allbtn" href="#/">Back to all summaries</a>
+        <div class="kbd"><kbd>←</kbd> <kbd>→</kbd> previous / next · <kbd>Esc</kbd> all summaries</div>
+      </article>`;
+
+    const heads = [...document.querySelectorAll("#body h2")];
+    if (heads.length >= 2) {
+      const toc = document.getElementById("toc");
+      toc.innerHTML = heads.map((h, n) => `<li><button data-n="${n}">${esc(h.textContent)}</button></li>`).join("");
+      toc.hidden = false;
+      toc.addEventListener("click", ev => { const b = ev.target.closest("button"); if (b) heads[+b.dataset.n].scrollIntoView({ block: "start" }); });
+    }
+    progress.hidden = false;
+    onScroll();
+  }
+
+  /* ---------- router ---------- */
+  function route() {
+    const id = decodeURIComponent(location.hash.replace(/^#\/?/, ""));
+    const e = id && entries.find(x => x.id === id || x.key === id);   // old run-date links still work
+    if (e) {
+      if (current === "list") listScrollY = window.scrollY;
+      renderArticle(e);
+      window.scrollTo({ top: 0, behavior: "instant" });
+      current = e.id;
+    } else {
+      const fromArticle = current && current !== "list";
+      renderList();
+      window.scrollTo({ top: fromArticle ? listScrollY : 0, behavior: "instant" });
+      current = "list";
+    }
+  }
+
+  /* ---------- scroll & keys ---------- */
+  function onScroll() {
+    const y = window.scrollY, max = document.documentElement.scrollHeight - innerHeight;
+    totop.classList.toggle("show", y > 500);
+    if (!progress.hidden) progress.style.width = (max > 0 ? Math.min(100, y / max * 100) : 100) + "%";
+    const sb = document.getElementById("stickybar"); if (sb) sb.classList.toggle("scrolled", y > 10);
+  }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  totop.addEventListener("click", () => window.scrollTo({ top: 0 }));
+  let rT; window.addEventListener("resize", () => { clearTimeout(rT); rT = setTimeout(drawChart, 150); });
+  window.addEventListener("hashchange", route);
+  document.addEventListener("keydown", ev => {
+    if (ev.target.closest("input, select, textarea") || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    if (!current || current === "list") return;
+    const i = entries.findIndex(e => e.id === current);
+    if (ev.key === "Escape") location.hash = "#/";
+    else if (ev.key === "ArrowLeft" && entries[i + 1]) location.hash = "#/" + entries[i + 1].id;
+    else if (ev.key === "ArrowRight" && entries[i - 1]) location.hash = "#/" + entries[i - 1].id;
+  });
+
+  /* ---------- load ---------- */
+  const getJSON = url => fetch(url, { cache: "no-store" }).then(r => r.ok ? r.json() : Promise.reject(new Error(url + " → " + r.status)));
+
+  function load() {
+    app.innerHTML = `<div class="state">Loading bond summaries…</div>`;
+    Promise.allSettled([getJSON(API + "/api/bondsummary-list"), getJSON(API + "/api/yields-ytd")])
+      .then(([list, ytd]) => {
+        if (ytd.status === "fulfilled") yields = ytd.value.yields || null;
+        else console.warn("Yield chart unavailable:", ytd.reason);
+        if (list.status !== "fulfilled") throw list.reason;
+        entries = toEntries(list.value.summaries || []);
+        current = null;
+        route();
+      })
+      .catch(err => {
+        console.error("Could not load bond summaries", err);
+        app.innerHTML = `<div class="state">Couldn't load the bond summaries right now. <a id="retry">Try again</a></div>`;
+        document.getElementById("retry").addEventListener("click", load);
+      });
+  }
+  load();
+})();
+</script>
 </body>
 </html>
