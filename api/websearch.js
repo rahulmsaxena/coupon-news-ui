@@ -1,0 +1,86 @@
+// GET /api/websearch?q=... -> recent news from outside the daily Coupon feed, for topics the feed
+// doesn't cover. Read by the search box on point75.io/news (point75-site p75.js).
+// Sources, in order: NewsData.io and Marketaux (same accounts as fetch_news.py; set NEWSDATA_API_KEY /
+// MARKETAUX_API_KEY in Vercel), then GDELT (free, no key) if those return nothing.
+// Results are cached at the edge for 30 minutes per query so repeat searches don't use API credits.
+
+function withTimeout(ms) {
+  const c = new AbortController();
+  setTimeout(() => c.abort(), ms);
+  return c.signal;
+}
+
+function norm(t) {
+  return String(t || "").toLowerCase().replace(/[^a-z0-9 ]/g, "").replace(/\s+/g, " ").trim().slice(0, 80);
+}
+
+function gdeltDate(s) {
+  // 20260929T121500Z -> ISO
+  const m = /^(\d{4})(\d{2})(\d{2})T(\d{2})(\d{2})(\d{2})Z$/.exec(s || "");
+  return m ? `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z` : null;
+}
+
+export default async function handler(req, res) {
+  res.setHeader("Access-Control-Allow-Origin", "*");
+  const q = String(req.query.q || "").replace(/[<>]/g, "").trim().slice(0, 80);
+  if (q.length < 2) {
+    res.status(400).json({ error: "Query too short" });
+    return;
+  }
+  const enc = encodeURIComponent(q);
+  const { NEWSDATA_API_KEY, MARKETAUX_API_KEY } = process.env;
+  const out = [];
+  const used = [];
+
+  const jobs = [];
+  if (NEWSDATA_API_KEY) {
+    jobs.push(
+      fetch(`https://newsdata.io/api/1/news?apikey=${NEWSDATA_API_KEY}&q=${enc}&language=en&category=business`, { signal: withTimeout(6000) })
+        .then(r => r.json())
+        .then(j => {
+          (j.results || []).forEach(x => out.push({
+            title: x.title, url: x.link, source: x.source_name || x.source_id || "",
+            date: x.pubDate ? x.pubDate.replace(" ", "T") + "Z" : null, summary: x.description || "",
+          }));
+          used.push("NewsData.io");
+        })
+        .catch(() => {})
+    );
+  }
+  if (MARKETAUX_API_KEY) {
+    jobs.push(
+      fetch(`https://api.marketaux.com/v1/news/all?api_token=${MARKETAUX_API_KEY}&search=${enc}&language=en&limit=10`, { signal: withTimeout(6000) })
+        .then(r => r.json())
+        .then(j => {
+          (j.data || []).forEach(x => out.push({
+            title: x.title, url: x.url, source: x.source || "", date: x.published_at || null, summary: x.description || x.snippet || "",
+          }));
+          used.push("Marketaux");
+        })
+        .catch(() => {})
+    );
+  }
+  await Promise.all(jobs);
+
+  if (!out.length) {
+    try {
+      const g = await fetch(
+        `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(q + " sourcelang:english")}&mode=artlist&format=json&maxrecords=15&sort=datedesc&timespan=14d`,
+        { signal: withTimeout(7000) }
+      ).then(r => r.json());
+      (g.articles || []).forEach(x => out.push({ title: x.title, url: x.url, source: x.domain || "", date: gdeltDate(x.seendate), summary: "" }));
+      used.push("GDELT");
+    } catch (e) { /* no results */ }
+  }
+
+  const seen = new Set();
+  const items = out
+    .filter(a => a.title && /^https?:\/\//.test(a.url || ""))
+    .filter(a => { const k = norm(a.title); if (seen.has(k)) return false; seen.add(k); return true; })
+    .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+    .slice(0, 10)
+    .map(a => ({ ...a, summary: String(a.summary || "").replace(/\s+/g, " ").slice(0, 280) }));
+
+  res.setHeader("Cache-Control", "public, s-maxage=1800, stale-while-revalidate=3600");
+  res.status(200).json({ q, sources: used, items });
+}
