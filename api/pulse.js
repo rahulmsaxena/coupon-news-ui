@@ -30,6 +30,11 @@ export default async function handler(req, res) {
     }
 
     const payload = JSON.parse(body.result);
+    try {
+      const chk = await fetch(`${UPSTASH_REDIS_REST_URL}/get/pulse:checked`,
+        { headers: { Authorization: `Bearer ${UPSTASH_REDIS_REST_TOKEN}` } });
+      if (chk.ok) payload.checked_at = (await chk.json()).result || null;
+    } catch (e) { /* heartbeat is optional */ }
     res.setHeader("Cache-Control", "no-store");
     res.status(200).json(payload);
   } catch (err) {
