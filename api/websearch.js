@@ -20,6 +20,27 @@ function gdeltDate(s) {
   return m ? `${m[1]}-${m[2]}-${m[3]}T${m[4]}:${m[5]}:${m[6]}Z` : null;
 }
 
+const STOP = new Set(["the", "a", "an", "of", "in", "on", "for", "and", "or", "to", "at", "by", "with", "about", "is", "are", "what", "how", "why",
+  "market", "markets", "news", "latest", "today", "update", "updates", "report"]);
+function stem(w) {
+  const r = w.replace(/(ilities|ility|ities|ations|ation|ity|ies|ied|ing|ers|er|ed|es|e|s|ly)$/, "");
+  return r.length >= 3 ? r : w;
+}
+// Keep articles that actually talk about the topic: every key word (by its root) in the title or summary,
+// or, if that leaves fewer than 3, at least one key word. Best matches first, then newest.
+function relevant(items, q) {
+  const keys = q.toLowerCase().replace(/[^a-z0-9\s-]/g, " ").split(/\s+/).filter(w => w && !STOP.has(w)).map(stem);
+  if (!keys.length) return items;
+  const scored = items.map(a => {
+    const words = (a.title + " " + (a.summary || "")).toLowerCase().split(/[^a-z0-9-]+/);
+    const n = keys.filter(k => words.some(w => w.startsWith(k))).length;
+    return { a, n };
+  });
+  let keep = scored.filter(x => x.n === keys.length);
+  if (keep.length < 3) keep = scored.filter(x => x.n > 0);
+  return keep.sort((x, y) => (y.n - x.n) || (y.a.date || "").localeCompare(x.a.date || "")).map(x => x.a);
+}
+
 export default async function handler(req, res) {
   res.setHeader("Access-Control-Allow-Origin", "*");
   const q = String(req.query.q || "").replace(/[<>]/g, "").trim().slice(0, 80);
@@ -35,7 +56,7 @@ export default async function handler(req, res) {
   const jobs = [];
   if (NEWSDATA_API_KEY) {
     jobs.push(
-      fetch(`https://newsdata.io/api/1/news?apikey=${NEWSDATA_API_KEY}&q=${enc}&language=en&category=business`, { signal: withTimeout(6000) })
+      fetch(`https://newsdata.io/api/1/news?apikey=${NEWSDATA_API_KEY}&q=${encodeURIComponent(q.includes(" ") ? '"' + q + '"' : q)}&language=en`, { signal: withTimeout(6000) })
         .then(r => r.json())
         .then(j => {
           (j.results || []).forEach(x => out.push({
@@ -74,10 +95,10 @@ export default async function handler(req, res) {
   }
 
   const seen = new Set();
-  const items = out
+  const clean = out
     .filter(a => a.title && /^https?:\/\//.test(a.url || ""))
-    .filter(a => { const k = norm(a.title); if (seen.has(k)) return false; seen.add(k); return true; })
-    .sort((a, b) => (b.date || "").localeCompare(a.date || ""))
+    .filter(a => { const k = norm(a.title); if (seen.has(k)) return false; seen.add(k); return true; });
+  const items = relevant(clean, q)
     .slice(0, 10)
     .map(a => ({ ...a, summary: String(a.summary || "").replace(/\s+/g, " ").slice(0, 280) }));
 
