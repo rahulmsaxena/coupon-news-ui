@@ -66,7 +66,7 @@ export default async function handler(req, res) {
     try {
       const g = await fetch(
         `https://api.gdeltproject.org/api/v2/doc/doc?query=${encodeURIComponent(q + " sourcelang:english")}&mode=artlist&format=json&maxrecords=15&sort=datedesc&timespan=14d`,
-        { signal: withTimeout(7000) }
+        { signal: withTimeout(8500) }
       ).then(r => r.json());
       (g.articles || []).forEach(x => out.push({ title: x.title, url: x.url, source: x.domain || "", date: gdeltDate(x.seendate), summary: "" }));
       used.push("GDELT");
@@ -81,6 +81,7 @@ export default async function handler(req, res) {
     .slice(0, 10)
     .map(a => ({ ...a, summary: String(a.summary || "").replace(/\s+/g, " ").slice(0, 280) }));
 
-  res.setHeader("Cache-Control", "public, s-maxage=1800, stale-while-revalidate=3600");
+  // cache real results for 30 minutes; never cache an empty answer (a source may just have been slow)
+  res.setHeader("Cache-Control", items.length ? "public, s-maxage=1800, stale-while-revalidate=3600" : "no-store");
   res.status(200).json({ q, sources: used, items });
 }
