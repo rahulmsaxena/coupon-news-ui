@@ -220,6 +220,14 @@
     .kbd { display: none; }
   }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } .rail { scroll-behavior: auto; } }
+  /* Disclaimer */
+  .disclaimer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: .8rem; line-height: 1.6; }
+  .disclaimer .wrap { padding-top: 22px; padding-bottom: 28px; }
+  .disclaimer strong { color: var(--ink-2); font-weight: 600; }
+  .disclaimer p { margin: 0 0 8px; max-width: 820px; }
+  .disclaimer p:last-child { margin-bottom: 0; }
+  .disclaimer a { color: var(--ink-2); text-decoration: underline; text-decoration-color: var(--gold-soft); text-underline-offset: 2px; }
+  .disclaimer a:hover { color: var(--gold); }
 </style>
 </head>
 <body>
@@ -238,6 +246,13 @@
 </header>
 
 <main id="app"><div class="state">Loading bond summaries…</div></main>
+
+<footer class="disclaimer" role="contentinfo">
+  <div class="wrap">
+    <p><strong>Disclaimer.</strong> Bond Summaries are informational commentary, summarized from and inspired by episodes of <a href="https://www.iheart.com/podcast/53-the-bond-investing-podcast-334455388/" target="_blank" rel="noopener"><em>The Bond Investing Podcast</em></a>. They are not affiliated with or endorsed by the podcast or its hosts, and any errors or interpretations are our own. Please refer to the original episodes for full context.</p>
+    <p>Nothing here is investment, tax, or legal advice, or a recommendation to buy or sell any security. Yields and prices change and may be out of date. Bond investing involves risk, including interest-rate, credit, and liquidity risk and possible loss of principal. Consult a qualified financial professional before making investment decisions.</p>
+  </div>
+</footer>
 
 <button class="totop" id="totop" aria-label="Back to top" title="Back to top">
   <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
