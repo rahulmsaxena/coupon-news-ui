@@ -160,6 +160,18 @@
   }
 
   @media (prefers-reduced-motion: reduce){ *{ transition: none !important; animation: none !important; } }
+  .rates{ background: var(--bg-raised); border: 1px solid var(--panel-border); border-radius: 4px; padding: 1.2rem 1.3rem 1rem; margin-bottom: 1.75rem; }
+  .rates-title{ font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.06em; color: var(--gold); margin-bottom: 0.9rem; }
+  .rates-grid{ display: grid; grid-template-columns: repeat(auto-fill, minmax(215px, 1fr)); gap: 0.75rem; }
+  .rate-card{ background: var(--bg); border: 1px solid var(--panel-border); border-radius: 3px; padding: 0.75rem 0.85rem 0.8rem; }
+  .rate-head{ display:flex; justify-content: space-between; align-items: baseline; gap: 0.5rem; margin-bottom: 0.3rem; }
+  .rate-name{ font-family: var(--mono); font-size: 0.68rem; letter-spacing: 0.03em; color: var(--paper-dim); text-transform: uppercase; }
+  .rate-tag{ font-family: var(--mono); font-size: 0.6rem; color: var(--dim); text-align: right; }
+  .rate-val{ font-family: var(--mono); font-size: 1.45rem; font-weight: 600; color: var(--paper); line-height: 1.15; }
+  .rate-sub{ display:flex; justify-content: space-between; gap: 0.5rem; font-family: var(--mono); font-size: 0.66rem; color: var(--dim); margin: 0.3rem 0 0.5rem; }
+  .rate-sub .delta.up{ color: var(--up); } .rate-sub .delta.down{ color: var(--down); } .rate-sub .delta.flat{ color: var(--dim); }
+  .rate-desc{ font-size: 0.82rem; line-height: 1.45; color: var(--dim); margin: 0; }
+  .rates-src{ font-family: var(--mono); font-size: 0.62rem; color: var(--dim); margin: 0.85rem 0 0; }
 </style>
 </head>
 <body>
@@ -278,6 +290,51 @@
     );
   }
 
+  // Fed policy & overnight funding rates (policy_rates from the daily FRED pull)
+  var POLICY_ORDER = ["FFR", "EFFR", "SOFR", "IORB", "ONRRP"];
+  var POLICY_INFO = {
+    FFR:   { name: "Fed Funds Target", tag: "FFR",    desc: "The range the Fed's FOMC sets for banks lending spare cash to each other overnight, unsecured." },
+    EFFR:  { name: "Effective Fed Funds", tag: "EFFR", desc: "What banks actually paid overnight: the volume-weighted median, published daily by the New York Fed." },
+    SOFR:  { name: "SOFR", tag: "Secured overnight", desc: "The cost of borrowing cash overnight against Treasuries. It replaced LIBOR as the dollar benchmark." },
+    IORB:  { name: "Interest on Reserves", tag: "IORB", desc: "What the Fed pays banks on the reserves they park at the central bank." },
+    ONRRP: { name: "ON RRP", tag: "Reverse repo", desc: "What the Fed pays money funds and others to park cash overnight. It sets a floor under short rates." }
+  };
+  function fmtAsOf(d) {
+    try { return new Date(d + "T12:00:00Z").toLocaleDateString("en-US", { month: "short", day: "numeric", timeZone: "UTC" }); }
+    catch (e) { return d; }
+  }
+  function renderPolicyRates(snapshot, P) {
+    var r = (snapshot && snapshot.policy_rates) || {};
+    var keys = POLICY_ORDER.filter(function (k) { return r[k] && typeof r[k].value === "number"; });
+    if (!keys.length) return "";
+    var cards = keys.map(function (k) {
+      var x = r[k], info = POLICY_INFO[k];
+      var val = k === "FFR" && typeof x.lower === "number"
+        ? x.lower.toFixed(2) + "–" + x.value.toFixed(2) + "%"
+        : x.value.toFixed(2) + "%";
+      var wk = x.change_1w_bps;
+      var chg = (wk === null || wk === undefined) ? "" :
+        (Math.abs(wk) < 0.5 ? '<span class="' + P + 'delta flat">unch. 1w</span>'
+          : '<span class="' + P + 'delta ' + deltaClass(wk) + '">' + deltaArrow(wk) + " " + fmtBps(wk) + " 1w</span>");
+      return (
+        '<div class="' + P + 'rate-card">' +
+          '<div class="' + P + 'rate-head"><span class="' + P + 'rate-name">' + escapeHtml(info.name) + '</span>' +
+          '<span class="' + P + 'rate-tag">' + escapeHtml(info.tag) + '</span></div>' +
+          '<div class="' + P + 'rate-val">' + val + '</div>' +
+          '<div class="' + P + 'rate-sub">' + chg + '<span>as of ' + escapeHtml(fmtAsOf(x.date)) + '</span></div>' +
+          '<p class="' + P + 'rate-desc">' + escapeHtml(info.desc) + '</p>' +
+        '</div>'
+      );
+    }).join("");
+    return (
+      '<div class="' + P + 'rates">' +
+        '<div class="' + P + 'rates-title">FED POLICY &amp; OVERNIGHT FUNDING RATES</div>' +
+        '<div class="' + P + 'rates-grid">' + cards + '</div>' +
+        '<p class="' + P + 'rates-src">Source: FRED. EFFR and SOFR are published by the Federal Reserve Bank of New York.</p>' +
+      '</div>'
+    );
+  }
+
   function renderMarketSnapshot(snapshot) {
     if (!snapshot || (!snapshot.narrative && !snapshot.yields)) {
       el.snapshot.innerHTML = "";
@@ -339,7 +396,8 @@
       : "";
 
     el.snapshot.innerHTML =
-      '<div class="hero">' + primaryHtml + narrativeHtml + secondaryHtml + attributionHtml + '</div>';
+      '<div class="hero">' + primaryHtml + narrativeHtml + secondaryHtml + attributionHtml + '</div>' +
+      renderPolicyRates(snapshot, "");
   }
 
   function renderMeta() {
