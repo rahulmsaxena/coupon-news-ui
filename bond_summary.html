@@ -318,7 +318,10 @@
                      note: "Source: ..." });
      ===================================================================================== */
   const SOURCES = {
-    treasuries: { url: "/api/yields-ytd", toRows: j => historyToRows(j.yields) },
+    treasuries: { url: "/api/yields-ytd",
+      // yields = year-to-date (charts). yields_1y = trailing 12 months, used only by the
+      // 52-week high/low flags in "Latest levels"; kept on the rows as .year.
+      toRows: j => Object.assign(historyToRows(j.yields), { year: j.yields_1y ? historyToRows(j.yields_1y) : null }) },
   };
 
   const CHARTS = [
@@ -469,12 +472,13 @@
     const last = rows[rows.length - 1], prev = rows[rows.length - 2];
     const spread = r => r && r.DGS10 != null && r.DGS2 != null ? r.DGS10 - r.DGS2 : null;
 
-    // Comparison window: the trailing 52 weeks when the history is that long, otherwise
-    // everything available (the FRED feed is currently year-to-date, so it reads "YTD").
+    // Comparison window: the trailing 52 weeks when a year of history is available
+    // (yields_1y from the feed), otherwise everything we have, labeled "YTD".
     const lastDay = parseDay(last.date);
     const yearAgo = new Date(lastDay); yearAgo.setFullYear(yearAgo.getFullYear() - 1);
-    const hasYear = parseDay(rows[0].date) <= yearAgo;
-    const windowRows = hasYear ? rows.filter(r => parseDay(r.date) > yearAgo) : rows;
+    const yr = rows.year && rows.year.length && rows.year[rows.year.length - 1].date === last.date ? rows.year : rows;
+    const hasYear = parseDay(yr[0].date) <= yearAgo;
+    const windowRows = hasYear ? yr.filter(r => parseDay(r.date) >= yearAgo) : yr;
     const winLabel = hasYear ? "52W" : "YTD";
 
     const stat = (label, pick, isSpread) => {
