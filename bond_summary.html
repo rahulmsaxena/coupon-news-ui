@@ -240,6 +240,20 @@
     .kbd { display: none; }
   }
   @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } .rail { scroll-behavior: auto; } }
+  /* Newsletter signup (Buttondown) */
+  .sub { display: flex; align-items: center; justify-content: space-between; gap: 18px 28px; flex-wrap: wrap; padding: 18px 22px; margin: 0 0 28px; }
+  .sub h2 { margin: 0 0 2px; font-family: "Source Serif 4", Georgia, serif; font-weight: 600; font-size: 1.15rem; color: var(--ink); }
+  .sub p { margin: 0; color: var(--ink-2); font-size: .88rem; max-width: 520px; }
+  .sub form { display: flex; gap: 8px; flex: 1 1 320px; max-width: 460px; }
+  .sub input[type=email] { flex: 1; min-width: 0; height: 44px; padding: 0 14px; border-radius: 8px; border: 1px solid var(--gold-soft); background: var(--surface-2); color: var(--ink); font: inherit; font-size: .95rem; }
+  .sub input[type=email]::placeholder { color: var(--ink-3); }
+  .sub input[type=email]:focus { outline: none; border-color: var(--gold); }
+  .sub button { height: 44px; padding: 0 18px; border-radius: 8px; border: 0; background: var(--gold); color: var(--bg); font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .sub button:hover { background: var(--focus); }
+  .sub .fine { flex-basis: 100%; font-size: .74rem; color: var(--ink-3); }
+  .sub.slim { background: none; border: 0; padding: 0 0 18px; margin: 0 0 18px; border-bottom: 1px solid var(--line); border-radius: 0; }
+  @media (max-width: 760px) { .sub { padding: 16px; } .sub form { flex-basis: 100%; max-width: none; } }
+
   /* Disclaimer */
   .disclaimer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: .8rem; line-height: 1.6; }
   .disclaimer .wrap { padding-top: 22px; padding-bottom: 28px; }
@@ -269,6 +283,7 @@
 
 <footer class="disclaimer" role="contentinfo">
   <div class="wrap">
+    <div id="sub-footer"></div>
     <p><strong>Disclaimer.</strong> Bond Summaries are informational commentary, summarized from and inspired by episodes of <a href="https://www.iheart.com/podcast/53-the-bond-investing-podcast-334455388/" target="_blank" rel="noopener"><em>The Bond Investing Podcast</em></a>. They are not affiliated with or endorsed by the podcast or its hosts, and any errors or interpretations are our own. Please refer to the original episodes for full context.</p>
     <p>Nothing here is investment, tax, or legal advice, or a recommendation to buy or sell any security. Yields and prices change and may be out of date. Bond investing involves risk, including interest-rate, credit, and liquidity risk and possible loss of principal. Consult a qualified financial professional before making investment decisions.</p>
   </div>
@@ -287,6 +302,30 @@
   const VERCEL_API = "https://coupon-news-ui.vercel.app";
   const onVercel = /\.vercel\.app$/.test(location.hostname) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
   const API = onVercel ? "" : VERCEL_API;
+
+  /* ---------- newsletter signup (Buttondown) ----------
+     Set this to your Buttondown username (the name in buttondown.com/<username>).
+     While it's empty, the signup boxes stay hidden, so the page is safe to deploy. */
+  const BUTTONDOWN_USER = "";
+  function subscribeHTML(slim) {
+    if (!BUTTONDOWN_USER) return "";
+    const u = encodeURIComponent(BUTTONDOWN_USER);
+    const id = slim ? "sub-email-f" : "sub-email";
+    return `<section class="sub ${slim ? "slim" : "card"}" aria-labelledby="${id}-h">
+        <div>
+          <h2 id="${id}-h">Get the daily bond brief</h2>
+          <p>Yields, the big moves, new economic data and what Fed officials said, in your inbox each morning.</p>
+        </div>
+        <form action="https://buttondown.com/api/emails/embed-subscribe/${u}" method="post" target="_blank">
+          <label class="sr" for="${id}">Email address</label>
+          <input type="email" name="email" id="${id}" placeholder="you@example.com" autocomplete="email" required>
+          <input type="hidden" name="embed" value="1">
+          <button type="submit">Subscribe</button>
+        </form>
+        <div class="fine">Free. Unsubscribe anytime. Not investment advice.</div>
+      </section>`;
+  }
+  { const f = document.getElementById("sub-footer"); if (f) f.innerHTML = subscribeHTML(true); }
 
   /* =====================================================================================
      DATA SOURCES AND CHARTS
@@ -710,6 +749,7 @@
           </div>
         </section>
         ${statsHTML()}
+        ${subscribeHTML(false)}
         ${railHTML()}
         <div class="sechead">
           <h2>Summaries</h2>
