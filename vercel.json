@@ -3,6 +3,10 @@
     {
       "source": "/api/fedspeak",
       "destination": "/api/debttrap?feed=fedspeak"
+    },
+    {
+      "source": "/api/credit",
+      "destination": "/api/debttrap?feed=credit"
     }
   ]
 }
