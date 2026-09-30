@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/api/fedspeak",
+      "destination": "/api/debttrap?feed=fedspeak"
+    }
+  ]
+}
