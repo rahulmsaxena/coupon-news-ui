@@ -1,7 +1,8 @@
 // GET /api/debttrap -> Debt Trap snapshot written daily by fetch_debttrap.py (Finance-NewsFeed-Aggregator).
 // GET /api/fedspeak -> Fed Watch, written daily by fetch_fedspeak.py (rewritten here by vercel.json as ?feed=fedspeak).
-// One function serves both because the Vercel plan allows at most 12 functions. Only the keys below can be read.
-const FEEDS = { debttrap: ["debttrap:latest", "Debt Trap"], fedspeak: ["fedspeak:latest", "Fed Watch"] };
+// GET /api/credit -> Check, Please! + Follow the Paper, written weekly by fetch_credit.py (rewritten here as ?feed=credit).
+// One function serves all three because the Vercel plan allows at most 12 functions. Only the keys below can be read.
+const FEEDS = { debttrap: ["debttrap:latest", "Debt Trap"], fedspeak: ["fedspeak:latest", "Fed Watch"], credit: ["credit:latest", "credit"] };
 
 
 export default async function handler(req, res) {
