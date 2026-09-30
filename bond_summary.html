@@ -87,6 +87,26 @@
   .stat .k { font-size: .74rem; color: var(--ink-3); letter-spacing: .02em; }
   .stat .v { font-size: 1.4rem; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.25; }
   .stat .d { font-size: .76rem; font-variant-numeric: tabular-nums; }
+  /* Range bar + record chip (new high/low vs. the prior window) */
+  .stat .vrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .stat .rec { font-size: .6rem; font-weight: 700; letter-spacing: .08em; padding: 2px 7px; border-radius: 99px; color: var(--bg); white-space: nowrap; animation: recIn .5s ease-out .5s backwards; }
+  .stat.is-high .rec { background: var(--up); }
+  .stat.is-low  .rec { background: var(--down); }
+  .stat.is-high { --rec: var(--up); } .stat.is-low { --rec: var(--down); }
+  .stat.is-high .v, .stat.is-low .v { animation: recGlow 2.6s ease-out .2s 1; }
+  .rng { position: relative; height: 5px; margin: 10px 2px 4px; border-radius: 99px; background: var(--surface-2); }
+  .rng .fill, .rng .ext { position: absolute; top: 0; bottom: 0; }
+  .rng .fill { left: 0; background: var(--ink-3); border-radius: 99px 0 0 99px; opacity: .55; }
+  .rng .ext { background: var(--rec); }
+  .stat.is-high .rng .ext { transform-origin: left center; border-radius: 0 99px 99px 0; animation: recGrow .8s cubic-bezier(.2,.8,.2,1) .35s backwards; }
+  .stat.is-low  .rng .ext { transform-origin: right center; left: 0; border-radius: 99px 0 0 99px; animation: recGrow .8s cubic-bezier(.2,.8,.2,1) .35s backwards; }
+  .rng .tick { position: absolute; top: -5px; width: 3px; height: 15px; margin-left: -1.5px; border-radius: 2px; background: var(--ink); }
+  .rng-ends { display: flex; justify-content: space-between; font-size: .66rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  @keyframes recGlow { 0% { text-shadow: 0 0 0 transparent; } 35% { text-shadow: 0 0 18px var(--rec); } 100% { text-shadow: 0 0 0 transparent; } }
+  @keyframes recGrow { from { transform: scaleX(0); } }
+  @keyframes recIn { from { transform: translateY(5px); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .stat .v, .stat .rec, .rng .ext { animation: none !important; } }
 
   /* Section heads */
   .sechead { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; }
@@ -447,22 +467,55 @@
     const rows = treasuryRows();
     if (!rows.length) return "";
     const last = rows[rows.length - 1], prev = rows[rows.length - 2];
-    const stat = (label, v, pv, isSpread) => {
+    const spread = r => r && r.DGS10 != null && r.DGS2 != null ? r.DGS10 - r.DGS2 : null;
+
+    // Comparison window: the trailing 52 weeks when the history is that long, otherwise
+    // everything available (the FRED feed is currently year-to-date, so it reads "YTD").
+    const lastDay = parseDay(last.date);
+    const yearAgo = new Date(lastDay); yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+    const hasYear = parseDay(rows[0].date) <= yearAgo;
+    const windowRows = hasYear ? rows.filter(r => parseDay(r.date) > yearAgo) : rows;
+    const winLabel = hasYear ? "52W" : "YTD";
+
+    const stat = (label, pick, isSpread) => {
+      const v = pick(last), pv = prev ? pick(prev) : null;
       if (v == null) return "";
-      let d = `<div class="d flat">as of ${fmtShort(parseDay(last.date))}</div>`;
+      const show = n => isSpread ? Math.round(n * 100) + " bp" : n.toFixed(2) + "%";
+      let d = `<div class="d flat">as of ${fmtShort(lastDay)}</div>`;
       if (pv != null) {
         const bp = Math.round((v - pv) * 100);
         const cls = bp > 0 ? "up" : bp < 0 ? "down" : "flat";
         d = `<div class="d ${cls}">${bp > 0 ? "▲ +" : bp < 0 ? "▼ " : "– "}${bp} bp on the day</div>`;
       }
-      return `<div class="stat"><div class="k">${label}</div><div class="v">${isSpread ? Math.round(v * 100) + " bp" : v.toFixed(2) + "%"}</div>${d}</div>`;
+
+      // Prior range excludes today, so beating it means a new high/low.
+      const prior = windowRows.slice(0, -1).map(pick).filter(n => n != null && isFinite(n));
+      let range = "", state = "normal", chip = "", spoken = "";
+      if (prior.length >= 20) {
+        const pLo = Math.min(...prior), pHi = Math.max(...prior);
+        state = v > pHi ? "high" : v < pLo ? "low" : "normal";
+        const lo = Math.min(pLo, v), hi = Math.max(pHi, v);
+        const pct = n => hi === lo ? 50 : ((n - lo) / (hi - lo)) * 100;
+        const segs = state === "high"
+          ? `<div class="fill" style="width:${pct(pHi)}%"></div><div class="ext" style="left:${pct(pHi)}%;width:${100 - pct(pHi)}%"></div>`
+          : state === "low"
+          ? `<div class="ext" style="width:${pct(pLo)}%"></div>`
+          : `<div class="fill" style="width:${pct(v)}%"></div>`;
+        range = `<div class="rng" aria-hidden="true">${segs}<div class="tick" style="left:${pct(v)}%"></div></div>
+          <div class="rng-ends" aria-hidden="true"><span>${show(lo)}</span><span>${winLabel} range</span><span>${show(hi)}</span></div>`;
+        if (state !== "normal") chip = `<span class="rec" aria-hidden="true">${winLabel} ${state === "high" ? "HIGH" : "LOW"}</span>`;
+        spoken = state === "high" ? `New ${winLabel} high; previous high ${show(pHi)}.`
+          : state === "low" ? `New ${winLabel} low; previous low ${show(pLo)}.`
+          : `${winLabel} range ${show(pLo)} to ${show(pHi)}.`;
+      }
+      return `<div class="stat is-${state}"><div class="k">${label}</div>
+        <div class="vrow"><div class="v">${show(v)}</div>${chip}<span class="sr">${spoken}</span></div>${d}${range}</div>`;
     };
-    const spread = r => r && r.DGS10 != null && r.DGS2 != null ? r.DGS10 - r.DGS2 : null;
     return `<section class="stats" aria-label="Latest levels">
-        ${stat("2-year", last.DGS2, prev && prev.DGS2)}
-        ${stat("10-year", last.DGS10, prev && prev.DGS10)}
-        ${stat("30-year", last.DGS30, prev && prev.DGS30)}
-        ${stat("10Y – 2Y curve", spread(last), spread(prev), true)}
+        ${stat("2-year", r => r.DGS2)}
+        ${stat("10-year", r => r.DGS10)}
+        ${stat("30-year", r => r.DGS30)}
+        ${stat("10Y – 2Y curve", spread, true)}
       </section>`;
   }
 
