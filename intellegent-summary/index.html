@@ -532,6 +532,22 @@
     .p75crumb { padding: 14px 16px 0; }
     .rail { margin: 0 -14px 24px; padding: 2px 14px 12px; scroll-padding: 0 14px; }
   }
+
+  /* Floating older/newer dock (article view). Drawn here only when the page is opened directly;
+     embedded on point75.io, the site script (p75.js) draws the same dock from our "nav" messages. */
+  .dock { position: fixed; left: 50%; bottom: 20px; transform: translateX(-50%); z-index: 30; display: flex; max-width: calc(100vw - 140px);
+    background: rgba(17, 18, 20, .94); -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); border: 1px solid rgba(201, 162, 39, .6);
+    border-radius: 99px; box-shadow: 0 6px 24px rgba(0, 0, 0, .45); font-family: Manrope, system-ui, sans-serif; transition: opacity .25s, transform .25s; }
+  .dock[hidden] { display: none; }
+  .dock.hid { opacity: 0; transform: translate(-50%, 14px); pointer-events: none; }
+  .dock a { display: flex; align-items: center; gap: 6px; padding: 10px 16px; color: var(--gold); font-weight: 700; font-size: 14px; text-decoration: none; white-space: nowrap; }
+  .dock a + a { border-left: 1px solid rgba(201, 162, 39, .3); }
+  .dock a:first-child { border-radius: 99px 0 0 99px; } .dock a:last-child { border-radius: 0 99px 99px 0; } .dock a:only-child { border-radius: 99px; }
+  .dock a.up { color: var(--ink); font-weight: 600; }
+  .dock a:hover, .dock a:focus-visible { background: rgba(201, 162, 39, .14); outline: none; }
+  html:not(.embedded) .article::after { content: ""; display: block; height: 56px; }
+  .embedded .dock { display: none !important; }
+  @media (max-width: 600px) { .dock { bottom: 14px; } .dock a { padding: 10px 13px; font-size: 13.5px; } }
 </style>
 </head>
 <body>
@@ -1471,6 +1487,38 @@
     onScroll();
   }
 
+  /* ---------- floating older/newer dock ----------
+     Embedded on point75.io this frame is sized to its content, so nothing inside it can float on
+     screen. The page tells the site which summaries are older/newer and the site script (p75.js)
+     draws the dock, sending {type: "go", hash} back here. Opened directly, the page draws its own. */
+  const dock = document.createElement("nav");
+  dock.className = "dock"; dock.hidden = true; dock.setAttribute("aria-label", "Older and newer summaries");
+  document.body.appendChild(dock);
+  function setDock(e) {
+    const i = e ? entries.indexOf(e) : -1;
+    const older = e ? entries[i + 1] : null, newer = e ? entries[i - 1] : null;
+    const item = (x, text) => x ? { hash: "#/" + x.id, text, title: fmtShort(x.date) + ": " + x.title } : null;
+    tellHost({ type: "nav", view: e ? "article" : "list", older: item(older, "Older"), newer: item(newer, "Newer"),
+      up: e ? { hash: "#/", text: "All", title: "All summaries" } : null });
+    if (embedded || !e) { dock.hidden = true; return; }
+    dock.innerHTML = (older ? `<a href="#/${older.id}" title="${esc(fmtShort(older.date) + ": " + older.title)}">← Older</a>` : "") +
+      `<a class="up" href="#/" title="All summaries">All</a>` +
+      (newer ? `<a href="#/${newer.id}" title="${esc(fmtShort(newer.date) + ": " + newer.title)}">Newer →</a>` : "");
+    dock.hidden = false; dock.classList.remove("hid");
+  }
+  // Hide while scrolling down, back when scrolling up or after a short pause.
+  let dockY = window.scrollY, dockT;
+  window.addEventListener("scroll", () => {
+    const y = window.scrollY;
+    if (y > dockY + 6 && y > 240) dock.classList.add("hid"); else if (y < dockY - 6) dock.classList.remove("hid");
+    dockY = y; clearTimeout(dockT); dockT = setTimeout(() => dock.classList.remove("hid"), 700);
+  }, { passive: true });
+  // The site's dock (p75.js) asks this frame to move.
+  window.addEventListener("message", ev => {
+    const m = ev.data;
+    if (m && m.p75 === true && m.type === "go" && typeof m.hash === "string" && /^#\/[\w-]*$/.test(m.hash)) location.hash = m.hash;
+  });
+
   /* ---------- router ---------- */
   function route() {
     const id = decodeURIComponent(location.hash.replace(/^#\/?/, ""));
@@ -1479,12 +1527,14 @@
       if (current === "list") listScrollY = window.scrollY;
       const fromList = current === "list";
       renderArticle(e);
+      setDock(e);
       window.scrollTo({ top: 0, behavior: "instant" });
       tellHost({ type: "view", view: "article", fromList });
       current = e.id;
     } else {
       const fromArticle = current && current !== "list";
       renderList();
+      setDock(null);
       window.scrollTo({ top: fromArticle ? listScrollY : 0, behavior: "instant" });
       if (current !== null) tellHost({ type: "view", view: "list", fromArticle });
       current = "list";
