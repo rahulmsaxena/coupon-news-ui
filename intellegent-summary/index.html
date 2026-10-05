@@ -7,7 +7,7 @@
 <link rel="canonical" href="https://point75.io/bondsummary/intellegent-summary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Hedvig+Letters+Serif:opsz@12..24&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 <!--
@@ -49,18 +49,18 @@
 
   * { box-sizing: border-box; }
   html { scroll-behavior: smooth; background: var(--bg); color-scheme: dark; }
-  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 Manrope, system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
   a { color: inherit; }
   button { font: inherit; color: inherit; }
   :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
   .wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
   [hidden] { display: none !important; }
-  .serif { font-family: "Source Serif 4", Georgia, serif; }
+  .serif { font-family: "Hedvig Letters Serif", Georgia, serif; }
 
   /* Site header (only shown when this page is opened directly, not when embedded) */
   .site { border-bottom: 1px solid var(--line); }
   .site .wrap { display: flex; align-items: center; justify-content: space-between; height: 68px; }
-  .brand { font-family: "Source Serif 4", Georgia, serif; font-weight: 600; font-size: 1.15rem; text-decoration: none; color: var(--gold); }
+  .brand { font-family: "Hedvig Letters Serif", Georgia, serif; font-weight: 600; font-size: 1.15rem; text-decoration: none; color: var(--gold); }
   .site nav { display: flex; gap: 28px; font-size: .95rem; }
   .site nav a { text-decoration: none; color: var(--ink-2); padding: 4px 0; }
   .site nav a[aria-current] { color: var(--ink); border-bottom: 1px solid var(--gold); }
@@ -82,7 +82,7 @@
 
   /* ---------- List view ---------- */
   .hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 30px 0 18px; }
-  .hero h1 { font-family: "Source Serif 4", Georgia, serif; font-weight: 600; font-size: clamp(1.7rem, 3.2vw, 2.3rem); margin: 4px 0 2px; line-height: 1.15; }
+  .hero h1 { font-family: "Hedvig Letters Serif", Georgia, serif; font-weight: 600; font-size: clamp(1.7rem, 3.2vw, 2.3rem); margin: 4px 0 2px; line-height: 1.15; }
   .hero p { margin: 0; color: var(--ink-2); font-size: .95rem; }
 
   /* Latest levels */
@@ -133,7 +133,7 @@
   .chartbox { position: relative; flex: 1; min-height: 220px; }
   .chartbox svg { display: block; width: 100%; height: 220px; overflow: visible; }
   .chartbox .msg { height: 220px; display: grid; place-items: center; text-align: center; color: var(--ink-3); font-size: .85rem; padding: 0 20px; }
-  .axis text { fill: var(--ink-3); font-size: 11px; font-family: Inter, sans-serif; }
+  .axis text { fill: var(--ink-3); font-size: 11px; font-family: Manrope, system-ui, sans-serif; }
   .grid line { stroke: var(--line); }
   .zero { stroke: var(--ink-3); stroke-dasharray: 2 3; }
   .tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font-size: .76rem; line-height: 1.45; padding: 7px 10px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, calc(-100% - 10px)); opacity: 0; transition: opacity .1s; z-index: 2; }
@@ -151,7 +151,7 @@
   .sum:hover { border-color: var(--gold); background: #1d1e22; }
   .sum .tags { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
   .sum .when { font-size: .78rem; color: var(--ink-3); font-variant-numeric: tabular-nums; margin-left: auto; white-space: nowrap; }
-  .sum h3 { font-family: "Source Serif 4", Georgia, serif; font-size: 1.18rem; font-weight: 600; margin: 0; line-height: 1.3; }
+  .sum h3 { font-family: "Hedvig Letters Serif", Georgia, serif; font-size: 1.18rem; font-weight: 600; margin: 0; line-height: 1.3; }
   .sum p { margin: 0; color: var(--ink-2); font-size: .9rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
   .sum .go { margin-top: auto; padding-top: 4px; font-size: .84rem; font-weight: 500; color: var(--gold); }
   .cards > li.lead { grid-column: 1 / -1; }
@@ -174,23 +174,23 @@
   .back:hover { background: var(--gold-wash); }
   .stickybar .crumb { margin-left: auto; font-size: .84rem; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
   .article { max-width: 720px; margin: 0 auto; padding: 26px 24px 40px; }
-  .article h1 { font-family: "Source Serif 4", Georgia, serif; font-weight: 600; font-size: clamp(1.8rem, 4vw, 2.4rem); line-height: 1.2; margin: 8px 0 10px; }
+  .article h1 { font-family: "Hedvig Letters Serif", Georgia, serif; font-weight: 600; font-size: clamp(1.8rem, 4vw, 2.4rem); line-height: 1.2; margin: 8px 0 10px; }
   .meta { color: var(--ink-3); font-size: .86rem; }
   .snap { display: flex; gap: 18px; flex-wrap: wrap; margin: 18px 0 0; padding: 12px 14px; border: 1px solid var(--gold-soft); border-radius: 8px; background: var(--surface); font-size: .84rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
   .snap b { color: var(--ink); font-weight: 600; }
   .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; }
   .toc button { background: var(--surface); border: 1px solid var(--gold-soft); border-radius: 99px; padding: 5px 12px; font-size: .8rem; cursor: pointer; color: var(--ink-2); }
   .toc button:hover { color: var(--ink); border-color: var(--gold); }
-  .body { font-family: "Source Serif 4", Georgia, serif; font-size: 1.12rem; line-height: 1.72; margin-top: 26px; }
-  .body h2 { font-family: Inter, sans-serif; font-size: 1.15rem; font-weight: 600; margin: 2em 0 .5em; scroll-margin-top: 70px; color: var(--gold); }
-  .body h3 { font-family: Inter, sans-serif; font-size: 1rem; font-weight: 600; margin: 1.6em 0 .4em; scroll-margin-top: 70px; }
+  .body { font-family: "Hedvig Letters Serif", Georgia, serif; font-size: 1.12rem; line-height: 1.72; margin-top: 26px; }
+  .body h2 { font-family: Manrope, system-ui, sans-serif; font-size: 1.15rem; font-weight: 600; margin: 2em 0 .5em; scroll-margin-top: 70px; color: var(--gold); }
+  .body h3 { font-family: Manrope, system-ui, sans-serif; font-size: 1rem; font-weight: 600; margin: 1.6em 0 .4em; scroll-margin-top: 70px; }
   .body p { margin: 0 0 1.1em; }
   .body ul, .body ol { padding-left: 1.3em; margin: 0 0 1.1em; }
   .body li { margin-bottom: .45em; }
   .body strong { font-weight: 600; }
   .body a { color: var(--gold); }
   .body blockquote { margin: 1.4em 0; padding: 2px 0 2px 18px; border-left: 2px solid var(--gold); color: var(--ink-2); }
-  .body table { border-collapse: collapse; width: 100%; font-family: Inter, sans-serif; font-size: .88rem; margin: 1.2em 0; display: block; overflow-x: auto; }
+  .body table { border-collapse: collapse; width: 100%; font-family: Manrope, system-ui, sans-serif; font-size: .88rem; margin: 1.2em 0; display: block; overflow-x: auto; }
   .body th, .body td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left; }
   .body hr { border: 0; border-top: 1px solid var(--line); margin: 2em 0; }
   .pager { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line); }
@@ -259,10 +259,6 @@
      ===================================================================================== */
 
   /* Sample-content notice (shown until the generator writes real editions) */
-  .crumbs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: .82rem; color: var(--ink-3); margin: 0 0 10px; }
-  .crumbs a { color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--gold-soft); }
-  .crumbs a:hover { color: var(--gold); border-bottom-color: var(--gold); }
-  .crumbs [aria-current] { color: var(--ink-2); }
   .sample-note { display: flex; gap: 12px; align-items: flex-start; border: 1px dashed var(--gold-soft); background: var(--gold-wash); color: var(--ink-2); border-radius: 8px; padding: 10px 14px; font-size: .84rem; line-height: 1.5; margin: 0 0 22px; }
   .sample-note .tag { margin-top: 1px; }
   .article .sample-note { margin: 0 0 18px; }
@@ -282,7 +278,7 @@
   .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
 
   .takeaway { margin: 22px 0 0; padding: 16px 20px 18px; border: 1px solid var(--gold); border-left-width: 3px; border-radius: 8px; background: var(--surface); }
-  .takeaway p { font-family: "Source Serif 4", Georgia, serif; font-size: 1.16rem; line-height: 1.6; margin: 8px 0 0; }
+  .takeaway p { font-family: "Hedvig Letters Serif", Georgia, serif; font-size: 1.16rem; line-height: 1.6; margin: 8px 0 0; }
 
   .blk { margin-top: 44px; scroll-margin-top: 70px; }
   .blk > h2 { font-size: 1.15rem; font-weight: 600; color: var(--gold); margin: 0 0 4px; }
@@ -321,8 +317,8 @@
   .curve { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; align-items: stretch; }
   .curve .card { padding: 16px 18px; }
   .curvebox svg { display: block; width: 100%; height: auto; overflow: visible; }
-  .curvebox .lbl { font-size: 11px; font-family: Inter, sans-serif; }
-  .regime .name { font-family: "Source Serif 4", Georgia, serif; font-size: 1.3rem; font-weight: 600; margin: 6px 0 4px; }
+  .curvebox .lbl { font-size: 11px; font-family: Manrope, system-ui, sans-serif; }
+  .regime .name { font-family: "Hedvig Letters Serif", Georgia, serif; font-size: 1.3rem; font-weight: 600; margin: 6px 0 4px; }
   .regime p { margin: 0; color: var(--ink-2); font-size: .88rem; }
   .kv { margin-top: 12px; }
   .kv .row { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: .86rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
@@ -334,7 +330,7 @@
   .drv { padding: 18px 20px; }
   .drv-head { display: flex; gap: 12px; align-items: flex-start; }
   .rank { flex: 0 0 28px; height: 28px; border-radius: 50%; border: 1px solid var(--gold); color: var(--gold); display: grid; place-items: center; font-size: .82rem; font-weight: 600; font-variant-numeric: tabular-nums; }
-  .drv h3 { font-family: "Source Serif 4", Georgia, serif; font-size: 1.18rem; font-weight: 600; margin: 1px 0 6px; line-height: 1.3; }
+  .drv h3 { font-family: "Hedvig Letters Serif", Georgia, serif; font-size: 1.18rem; font-weight: 600; margin: 1px 0 6px; line-height: 1.3; }
   .drv .tags { display: flex; gap: 6px; flex-wrap: wrap; }
   .attr { margin: 14px 0 4px; font-size: .82rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
   .attr .track { height: 6px; border-radius: 99px; background: var(--surface-2); margin-top: 6px; overflow: hidden; }
@@ -378,8 +374,8 @@
   .meter .pips { display: inline-flex; gap: 3px; }
   .meter .pips i { width: 18px; height: 6px; border-radius: 2px; background: var(--surface-2); border: 1px solid var(--line); }
   .meter .pips i.on { background: var(--gold); border-color: var(--gold); }
-  .interp p { font-family: "Source Serif 4", Georgia, serif; font-size: 1.08rem; line-height: 1.65; margin: 12px 0 0; }
-  .interp .change { font-family: Inter, sans-serif; font-size: .9rem; color: var(--ink-2); margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .interp p { font-family: "Hedvig Letters Serif", Georgia, serif; font-size: 1.08rem; line-height: 1.65; margin: 12px 0 0; }
+  .interp .change { font-family: Manrope, system-ui, sans-serif; font-size: .9rem; color: var(--ink-2); margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
   .interp .change b { color: var(--ink); font-weight: 600; }
 
   /* What's next */
@@ -405,14 +401,6 @@
     .chain dt { padding: 10px 0 0; }
     .chain dd { border-top: 0; padding: 2px 0 8px; }
     .drv { padding: 16px; }
-    .site .wrap { gap: 14px; }
-    .brand { white-space: nowrap; }
-    .site nav { gap: 12px; font-size: .8rem; overflow-x: auto; scrollbar-width: none; }
-    .site nav a { white-space: nowrap; }
-  }
-  @media (max-width: 480px) {
-    .site .wrap { flex-wrap: wrap; height: auto; padding-top: 14px; padding-bottom: 10px; row-gap: 8px; }
-    .site nav { width: 100%; justify-content: space-between; gap: 10px; }
     .tl::before { left: 63px; }
     .tl li { grid-template-columns: 54px minmax(0, 1fr); gap: 20px; }
     .tl li::before { left: 59px; }
@@ -420,22 +408,153 @@
     .hero .latest { align-items: flex-start; }
     .hero .latest .tags { justify-content: flex-start; }
   }
+
+  /* ---------- Point75 site header ----------
+     Mirrors the header on point75.io (logo, menu, Manrope 14px, cream links on charcoal).
+     Shown only when this page is opened directly; embedded on point75.io the site's own
+     header is already above it. Keep the menu in step with the site's navigation. */
+  .p75h { background: var(--bg); position: relative; z-index: 40; font-family: Manrope, system-ui, sans-serif; }
+  .p75h-in { margin: 0 auto; padding: 31px max(44px, calc((100% - 1192px) / 2)); display: flex; align-items: flex-start; justify-content: space-between; gap: 32px; }
+  .p75h-logo { display: block; flex: 0 0 auto; line-height: 0; }
+  .p75h-logo img { width: 340px; max-width: 34vw; height: auto; display: block; }
+  .p75h-nav > ul { list-style: none; margin: 0; padding: 0; display: flex; align-items: center; flex-wrap: wrap; justify-content: flex-end; gap: 10px 36px; }
+  .p75h-nav li { position: relative; display: flex; align-items: center; gap: 6px; }
+  .p75h-nav a { color: var(--ink); text-decoration: none; font-size: 14px; font-weight: 400; line-height: 1.6; padding: 2px 0; border-bottom: 1px solid transparent; white-space: nowrap; }
+  .p75h-nav a:hover { color: var(--gold); }
+  .p75h-nav > ul > li > a[aria-current] { border-bottom-color: var(--ink); }
+  .p75h-nav .coin { display: inline-flex; align-items: center; gap: 6px; }
+  .p75h-nav .coin svg { width: 16px; height: 16px; }
+  .p75h .caret { background: none; border: 0; padding: 4px; margin: 0; color: var(--ink); cursor: pointer; display: inline-grid; place-items: center; }
+  .p75h .caret svg { width: 10px; height: 7px; transition: transform .15s; }
+  .p75h .sub { list-style: none; margin: 0; padding: 8px 0; position: absolute; top: calc(100% + 8px); left: -14px; min-width: 220px; background: var(--surface); border: 1px solid var(--gold-soft); border-radius: 8px; box-shadow: 0 12px 28px rgba(0, 0, 0, .45); display: none; }
+  .p75h .sub::before { content: ""; position: absolute; left: 0; right: 0; top: -10px; height: 10px; }
+  .p75h .sub a { display: block; padding: 7px 16px; border: 0; color: var(--ink-2); }
+  .p75h .sub a:hover { color: var(--gold); background: var(--gold-wash); }
+  .p75h .sub a[aria-current="page"] { color: var(--gold); font-weight: 600; }
+  .p75h li.has-sub:hover > .sub, .p75h li.has-sub:focus-within > .sub, .p75h li.has-sub.open > .sub { display: block; }
+  .p75h li.has-sub.open > .caret svg { transform: rotate(180deg); }
+  .p75h-burger { display: none; background: none; border: 0; padding: 10px 4px; cursor: pointer; }
+  .p75h-burger span { display: block; width: 22px; height: 2px; margin: 4px 0; background: var(--ink); border-radius: 2px; transition: transform .2s, opacity .2s; }
+  .p75h-burger[aria-expanded="true"] span:nth-child(1) { transform: translateY(6px) rotate(45deg); }
+  .p75h-burger[aria-expanded="true"] span:nth-child(2) { opacity: 0; }
+  .p75h-burger[aria-expanded="true"] span:nth-child(3) { transform: translateY(-6px) rotate(-45deg); }
+
+  @media (max-width: 920px) {
+    .p75h-in { padding: 20px 16px; flex-wrap: wrap; gap: 0; align-items: center; }
+    .p75h-logo img { width: 160px; max-width: none; }
+    .p75h-burger { display: block; }
+    .p75h-nav { display: none; width: 100%; padding: 14px 0 4px; }
+    .p75h.open .p75h-nav { display: block; }
+    .p75h-nav > ul { flex-direction: column; align-items: stretch; gap: 0; }
+    .p75h-nav li { flex-wrap: wrap; border-top: 1px solid var(--line); padding: 4px 0; }
+    .p75h-nav a { font-size: 15px; padding: 8px 0; }
+    .p75h-nav > ul > li > a[aria-current] { border-bottom-color: transparent; color: var(--gold); }
+    .p75h .caret { margin-left: auto; padding: 10px; }
+    .p75h .sub { position: static; width: 100%; min-width: 0; box-shadow: none; border: 0; background: none; padding: 0 0 6px 12px; }
+    .p75h li.has-sub:hover > .sub, .p75h li.has-sub:focus-within > .sub { display: none; }
+    .p75h li.has-sub.open > .sub { display: block; }
+    .p75h .sub a { padding: 7px 0; }
+  }
+
+  /* =====================================================================================
+     Point75 sub-page theme: the same tokens, type and cards as the other Bond Summary
+     sub-pages on point75.io (Lenders, Sector Credit, Credit Stress, Insights).
+     ===================================================================================== */
+  :root { --bg: #111214; --surface: #17181B; --surface-2: #1f2023; --line: #2A2B2F; --ink: #EDE8DC; --ink-2: #C2BCAF; --ink-3: #8d887e;
+          --soft: #E4DED1; --gold: #C9A227; --gold-soft: rgba(201, 162, 39, .45); --gold-wash: rgba(201, 162, 39, .06); --up: #e0776d; }
+  body { font-family: Manrope, system-ui, sans-serif; }
+  .wrap { max-width: 1120px; padding: 0 20px; }
+  .eyebrow { font-size: 12px; letter-spacing: .14em; font-weight: 700; }
+  .eyebrow a { color: inherit; text-decoration: none; }
+  .eyebrow a:hover { text-decoration: underline; text-underline-offset: 3px; }
+  .card { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; }
+  .card.hi, .lead .sum, .takeaway { border-color: var(--gold-soft); }
+  .sum:hover, .pager a:hover { border-color: var(--gold); background: var(--surface); }
+  .tag { border-color: var(--gold-soft); }
+
+  /* Overview pill under the site header (same as the other sub-pages) */
+  .p75crumb { background: var(--bg); padding: 18px max(20px, calc((100% - 860px) / 2)) 0; font-family: Manrope, system-ui, sans-serif; }
+  .p75crumb a { display: inline-flex; align-items: center; gap: 8px; color: var(--gold); font-weight: 700; font-size: 14px; text-decoration: none; border: 1px solid rgba(201, 162, 39, .55); border-radius: 99px; padding: 7px 14px; background: rgba(201, 162, 39, .06); }
+  .p75crumb a:hover, .p75crumb a:focus-visible { background: rgba(201, 162, 39, .16); outline: none; }
+
+  /* Page head: eyebrow, title, lede, updated line */
+  .hero { display: block; padding: 44px 0 6px; }
+  .hero h1, .article h1 { font-family: "Hedvig Letters Serif", Georgia, serif; font-weight: 400; font-size: 40px; line-height: 1.1; margin: 8px 0 10px; }
+  .hero .lede { color: var(--soft); font-size: 16.5px; line-height: 1.6; max-width: 760px; margin: 0; }
+  .asof { font-size: 12.5px; color: var(--ink-2); margin-top: 10px; display: flex; align-items: center; gap: 10px; flex-wrap: wrap; }
+  .asof b { color: var(--ink); font-weight: 600; }
+  .hero + .sample-note { margin-top: 22px; }
+  .stats { margin-top: 26px; }
+
+  /* Section titles: serif, like "Who is lending it" */
+  .sechead { margin: 48px 0 14px; }
+  .sechead h2, .blk > h2 { font-family: "Hedvig Letters Serif", Georgia, serif; font-weight: 400; font-size: 27px; letter-spacing: normal; text-transform: none; color: var(--ink); margin: 0 0 6px; }
+  .blk { margin-top: 48px; }
+  .blk > .lede { color: var(--soft); font-size: 14.5px; line-height: 1.55; margin: 0 0 16px; max-width: 760px; }
+
+  /* Number tiles */
+  .stat { background: var(--surface); border: 1px solid var(--line); border-radius: 14px; padding: 14px 16px; }
+  .stat .k { font-size: 12px; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); font-weight: 700; }
+  .stat .v { font-family: "Hedvig Letters Serif", Georgia, serif; font-weight: 400; font-size: 30px; line-height: 1.2; margin-top: 4px; }
+
+  /* Cards and their headings */
+  .sum h3, .drv h3, .regime .name, .chart-head h3 { font-family: "Hedvig Letters Serif", Georgia, serif; font-weight: 400; }
+  .chart-head h3 { font-size: 1.1rem; }
+  .lead .sum { padding: 22px 24px; }
+  .takeaway { border-width: 1px; border-left-width: 3px; border-left-color: var(--gold); border-radius: 14px; }
+  .takeaway p, .interp p { font-family: Manrope, system-ui, sans-serif; color: var(--soft); font-size: 16.5px; line-height: 1.6; }
+  .chain dd, .dev p, .xa .r { color: var(--soft); }
+  .dev h3 { font-size: 15.5px; }
+
+  /* Article column: same 1120px page as the other sub-pages, text kept to a readable width */
+  .article.wide { max-width: 1120px; padding: 0 20px 40px; }
+  .stickybar.wide .wrap { max-width: 1120px; }
+  .article .chips, .article .meta { max-width: 760px; }
+  .back { border: 1px solid rgba(201, 162, 39, .55); border-radius: 99px; padding: 6px 13px; margin-left: 0; background: rgba(201, 162, 39, .06); font-weight: 700; font-size: 14px; }
+  .back:hover { background: rgba(201, 162, 39, .16); }
+  .article > .eyebrow { margin-top: 26px; }
+
+  /* Page foot: sources-style fine print, as on the other sub-pages */
+  .disclaimer { border-top: 0; color: var(--ink-3); font-size: 12.5px; line-height: 1.6; }
+  .disclaimer .wrap { border-top: 1px solid var(--line); padding-top: 16px; padding-bottom: 56px; margin-top: 44px; }
+  .disclaimer p { max-width: 900px; margin: 0 0 8px; }
+  .disclaimer strong { color: var(--ink-2); }
+
+  @media (max-width: 640px) {
+    .wrap, .article.wide { padding-left: 14px; padding-right: 14px; }
+    .hero { padding-top: 30px; }
+    .hero h1, .article h1 { font-size: 32px; }
+    .sechead h2, .blk > h2 { font-size: 24px; }
+    .stat .v { font-size: 24px; }
+    .card { border-radius: 12px; }
+    .p75crumb { padding: 14px 16px 0; }
+    .rail { margin: 0 -14px 24px; padding: 2px 14px 12px; scroll-padding: 0 14px; }
+  }
 </style>
 </head>
 <body>
 
 <div class="progress" id="progress" hidden></div>
 
-<header class="site" id="site" hidden>
-  <div class="wrap">
-    <a class="brand" href="https://point75.io/">Paper &amp; Cadence</a>
-    <nav aria-label="Main">
-      <a href="https://point75.io/">Journal</a>
-      <a href="https://point75.io/news">News</a>
-      <a href="https://point75.io/bondsummary" aria-current="true">Bond Summary</a>
+<header class="p75h" id="site" hidden>
+  <div class="p75h-in">
+    <a class="p75h-logo" href="https://point75.io/" aria-label="Point75 home"><img src="/intellegent-summary/point75-logo-byline.png" alt="Point75 logo" width="160" height="34"></a>
+    <button class="p75h-burger" id="p75burger" type="button" aria-expanded="false" aria-controls="p75nav" aria-label="Menu"><span></span><span></span><span></span></button>
+    <nav class="p75h-nav" id="p75nav" aria-label="Main">
+    <ul>
+      <li><a href="https://point75.io/">Journal</a></li>
+      <li><a href="https://point75.io/news">News</a></li>
+      <li><a class="coin" href="https://point75.io/bonds"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="var(--gold)" stroke-width="1.3"/><text x="8" y="11.3" text-anchor="middle" font-size="9.5" font-family="Manrope, system-ui, sans-serif" font-weight="600" fill="var(--gold)">$</text></svg>Bonds</a></li>
+      <li class="has-sub"><a href="https://point75.io/pulse">Pulse</a><button class="caret" type="button" aria-expanded="false" aria-controls="sub-pulse" aria-label="Pulse menu"><svg viewBox="0 0 10 7" fill="none" aria-hidden="true"><path d="M5 6.5L0.669873 0.5L9.33013 0.500001L5 6.5Z" fill="currentColor"/></svg></button><ul class="sub" id="sub-pulse"><li><a href="https://point75.io/pulse">Pulse overview</a></li><li><a href="https://point75.io/debt-trap">Debt Trap</a></li></ul></li>
+      <li class="has-sub"><a href="https://point75.io/bondsummary" aria-current="true">Bond Summary</a><button class="caret" type="button" aria-expanded="false" aria-controls="sub-bondsummary" aria-label="Bond Summary menu"><svg viewBox="0 0 10 7" fill="none" aria-hidden="true"><path d="M5 6.5L0.669873 0.5L9.33013 0.500001L5 6.5Z" fill="currentColor"/></svg></button><ul class="sub" id="sub-bondsummary"><li><a href="https://point75.io/bondsummary">Bond Summary overview</a></li><li><a href="https://point75.io/bondsummary/intellegent-summary" aria-current="page">Intelligent Summary</a></li><li><a href="https://point75.io/lenders">lenders</a></li><li><a href="https://point75.io/sector-credit">sector credit</a></li><li><a href="https://point75.io/credit-stress">credit stress</a></li><li><a href="https://point75.io/insights">Insights</a></li></ul></li>
+      <li class="has-sub"><a href="https://point75.io/education">Education</a><button class="caret" type="button" aria-expanded="false" aria-controls="sub-education" aria-label="Education menu"><svg viewBox="0 0 10 7" fill="none" aria-hidden="true"><path d="M5 6.5L0.669873 0.5L9.33013 0.500001L5 6.5Z" fill="currentColor"/></svg></button><ul class="sub" id="sub-education"><li><a href="https://point75.io/education">All Education guides</a></li><li><a href="https://point75.io/bond-introduction">Introduction</a></li><li><a href="https://point75.io/bond-history">History</a></li><li><a href="https://point75.io/bond-types">Classification</a></li><li><a href="https://point75.io/cash-logistics">Cash Logistics</a></li><li><a href="https://point75.io/bond-dictionary">Bond Dictionary</a></li><li><a href="https://point75.io/bond-players">Players</a></li><li><a href="https://point75.io/bond-fortunes">Bond Fortunes</a></li></ul></li>
+      <li><a href="https://point75.io/about">About</a></li>
+    </ul>
     </nav>
   </div>
 </header>
+
+<nav class="p75crumb" id="p75crumb" aria-label="Section" hidden><a href="https://point75.io/bondsummary">← Bond Summary overview</a></nav>
 
 <main id="app"><div class="state">Loading Intelligent Summary…</div></main>
 
@@ -443,7 +562,8 @@
   <div class="wrap">
     <p><strong>Disclaimer.</strong> Intelligent Summaries are informational market commentary built from public market data, official economic releases and news reports. They describe what markets appear to be pricing; they are not forecasts, and any errors or interpretations are our own.</p>
     <p id="sampleDisclaimer" hidden><strong>Sample editions.</strong> Editions marked "Sample" use invented figures and events to preview the page format. They do not describe real market activity and must not be relied on.</p>
-    <p>Nothing here is investment, tax, or legal advice, or a recommendation to buy or sell any security. Yields and prices change and may be out of date. Bond investing involves risk, including interest-rate, credit, and liquidity risk and possible loss of principal. Consult a qualified financial professional before making investment decisions.</p>
+    <p>For education, not financial advice. Nothing here is investment, tax, or legal advice, or a recommendation to buy or sell any security. Yields and prices change and may be out of date. Bond investing involves risk, including interest-rate, credit, and liquidity risk and possible loss of principal. Consult a qualified financial professional before making investment decisions.</p>
+    <p>Data: U.S. Treasury yields from FRED (public domain); this product uses the FRED® API but is not endorsed or certified by the Federal Reserve Bank of St. Louis.<br>© 2026 Rahul Saxena. All rights reserved.</p>
   </div>
 </footer>
 
@@ -697,12 +817,25 @@
     },
   ];
 
+  /* ---------- Point75 header menu ---------- */
+  (function () {
+    const hdr = document.getElementById("site"), burger = document.getElementById("p75burger");
+    const closeSubs = except => hdr.querySelectorAll("li.has-sub.open").forEach(li => { if (li !== except) { li.classList.remove("open"); li.querySelector(".caret").setAttribute("aria-expanded", "false"); } });
+    burger.addEventListener("click", () => { const open = !hdr.classList.contains("open"); hdr.classList.toggle("open", open); burger.setAttribute("aria-expanded", open); });
+    hdr.querySelectorAll(".caret").forEach(b => b.addEventListener("click", () => {
+      const li = b.closest("li"), open = !li.classList.contains("open");
+      closeSubs(li); li.classList.toggle("open", open); b.setAttribute("aria-expanded", open);
+    }));
+    document.addEventListener("click", ev => { if (!ev.target.closest("#site")) closeSubs(); });
+    document.addEventListener("keydown", ev => { if (ev.key === "Escape") closeSubs(); });
+  })();
+
   /* ---------- state ---------- */
   const app = document.getElementById("app");
   const progress = document.getElementById("progress");
   const totop = document.getElementById("totop");
   let embedded = false; try { embedded = window.self !== window.top; } catch (e) { embedded = true; }
-  document.getElementById("site").hidden = embedded || !onVercel;
+  document.getElementById("site").hidden = document.getElementById("p75crumb").hidden = embedded || !onVercel;
 
   // Embedded on point75.io: report height and view changes to the host page, exactly as
   // Bond Summary does, so the same embed code works for both pages.
@@ -1046,10 +1179,6 @@
   }
 
   const BOND_SUMMARY_URL = "https://point75.io/bondsummary";
-  const crumbsHTML = (extra) => `<nav class="crumbs" aria-label="Breadcrumb"><a href="${BOND_SUMMARY_URL}" target="_top">Bond Summary</a><span aria-hidden="true">›</span>${extra
-      ? `<a href="#/">Intelligent Summary</a><span aria-hidden="true">›</span><span aria-current="page">${extra}</span>`
-      : `<span aria-current="page">Intelligent Summary</span>`}</nav>`;
-
   /* ---------- list view ---------- */
   function filtered() {
     const q = query.trim().toLowerCase();
@@ -1096,17 +1225,15 @@
   function renderList() {
     document.title = "Intelligent Summary | Point75";
     progress.hidden = true;
+    document.getElementById("p75crumb").hidden = embedded || !onVercel;
     const top = entries[0];
     app.innerHTML = `
       <div class="wrap">
         <section class="hero">
-          <div>
-            ${crumbsHTML()}
-            <div class="eyebrow">Why yields moved, every trading day</div>
-            <h1>Intelligent Summary</h1>
-            <p>${top ? `Latest covers trading on ${fmtFull(top.date)}` : ""}</p>
-          </div>
-          ${top && top.regime ? `<div class="latest"><span>Latest regime</span><div class="tags"><span class="tag solid">${esc(top.regime)}</span>${top.conviction ? `<span class="tag">Conviction: ${esc(top.conviction)}</span>` : ""}</div></div>` : ""}
+          <div class="eyebrow"><a href="https://point75.io/bondsummary" target="_top">Bond Summary</a> · Intelligent Summary</div>
+          <h1>Intelligent Summary</h1>
+          <p class="lede">Why Treasury yields moved, every trading day: what happened, why it mattered, how bonds responded and what the move signals.</p>
+          ${top ? `<div class="asof"><span>Updated <b>${fmtLong(top.date)}</b></span>${top.regime ? `<span class="tag solid">${esc(top.regime)}</span>` : ""}${top.conviction ? `<span class="tag">Conviction: ${esc(top.conviction)}</span>` : ""}</div>` : ""}
         </section>
         ${sampleNote()}
         ${treasuryRows().length ? statsHTML() : tapeStatsHTML(top)}
@@ -1299,6 +1426,7 @@
     const i = entries.indexOf(e);
     const newer = entries[i - 1], older = entries[i + 1];
     document.title = e.title + " | Intelligent Summary";
+    document.getElementById("p75crumb").hidden = true;
     markRead(e.id);
     const edition = e.edition === "morning" ? "Morning Brief" : "Close Edition";
 
@@ -1308,9 +1436,8 @@
         <span class="crumb">${fmtLong(e.date)}</span>
       </div></div>
       <article class="article wide">
-        ${crumbsHTML(fmtLong(e.date))}
         ${isSample ? `<div class="sample-note" role="note"><span class="tag solid">Sample</span><span>Sample edition with invented numbers, shown to preview the format until the automated pipeline is live.</span></div>` : ""}
-        <div class="eyebrow">Intelligent Summary · ${edition} · ${fmtLong(e.date)}</div>
+        <div class="eyebrow"><a href="https://point75.io/bondsummary" target="_top">Bond Summary</a> · <a href="#/">Intelligent Summary</a> · ${edition}</div>
         <h1>${esc(e.title)}</h1>
         <div class="meta">Covers trading on ${fmtFull(e.date)}${e.as_of ? ` · As of ${esc(e.as_of)}` : ""} · ${e.minutes} min read${e.generated ? ` · Published ${fmtStamp(e.generated)}` : ""}</div>
         <div class="chips">${e.regime ? `<span class="tag solid">${esc(e.regime)}</span>` : ""}${e.regime_note ? `<span class="tag">${esc(e.regime_note)}</span>` : ""}${e.conviction ? `<span class="tag">Conviction: ${esc(e.conviction)}</span>` : ""}</div>
