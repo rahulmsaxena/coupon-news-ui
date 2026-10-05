@@ -516,7 +516,8 @@
 
   /* Page foot: sources-style fine print, as on the other sub-pages */
   .disclaimer { border-top: 0; color: var(--ink-3); font-size: 12.5px; line-height: 1.6; }
-  .disclaimer .wrap { border-top: 1px solid var(--line); padding-top: 16px; padding-bottom: 56px; margin-top: 44px; }
+  .disclaimer .wrap { padding-top: 0; padding-bottom: 56px; margin-top: 44px; }
+  .disclaimer .wrap::before { content: ""; display: block; border-top: 1px solid var(--line); margin-bottom: 16px; }
   .disclaimer p { max-width: 900px; margin: 0 0 8px; }
   .disclaimer strong { color: var(--ink-2); }
 
