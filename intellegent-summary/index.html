@@ -13,8 +13,9 @@
 <!--
   Intelligent Summary page for point75.io/intellegent-summary (a sub-page of Bond Summary);
   this Vercel project serves it at /intellegent-summary/.
-  Data: /api/intelsummary-list (structured editions, newest first; not deployed yet, see
-  lib/intelsummary-list.js) and /api/yields-ytd (FRED yields).
+  Data: editions come from the static file intelsummary/editions.json in the point75-site repo
+  (GitHub Pages, written daily by a scheduled task), or from /api/intelsummary-list if that is
+  ever deployed (see lib/intelsummary-list.js); FRED yields come from /api/yields-ytd.
   Until the generator writes editions, the page shows built-in SAMPLE editions under a clear notice.
   ?sample=1 forces the sample editions.
 
@@ -581,6 +582,10 @@
   const VERCEL_API = "https://coupon-news-ui.vercel.app";
   const onVercel = /\.vercel\.app$/.test(location.hostname) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
   const API = onVercel ? "" : VERCEL_API;
+
+  // Editions written by the daily scheduled task (same "summaries" format as the API).
+  // Cache-busted every 10 minutes so a new edition appears soon after it is pushed.
+  const STATIC_EDITIONS = "https://rahulmsaxena.github.io/point75-site/intelsummary/editions.json?v=" + Math.floor(Date.now() / 600000);
 
   // ?sample=1 always shows the sample editions (handy for reviewing the layout).
   const FORCE_SAMPLE = /[?&]sample=1\b/.test(location.search);
@@ -1513,8 +1518,11 @@
     app.innerHTML = `<div class="state">Loading Intelligent Summary…</div>`;
     const srcKeys = Object.keys(SOURCES);
     const listReq = FORCE_SAMPLE ? Promise.resolve({ summaries: [] }) : getJSON(API + "/api/intelsummary-list");
-    Promise.allSettled([listReq, ...srcKeys.map(k => getJSON(API + SOURCES[k].url))])
-      .then(([list, ...srcs]) => {
+    const staticReq = FORCE_SAMPLE ? Promise.resolve({ summaries: [] }) : getJSON(STATIC_EDITIONS);
+    Promise.allSettled([listReq, staticReq, ...srcKeys.map(k => getJSON(API + SOURCES[k].url))])
+      .then(([apiList, staticList, ...srcs]) => {
+        const has = r => r.status === "fulfilled" && Array.isArray(r.value.summaries) && r.value.summaries.length > 0;
+        const list = has(apiList) ? apiList : staticList;
         srcs.forEach((s, n) => {
           const k = srcKeys[n];
           try { data[k] = s.status === "fulfilled" ? SOURCES[k].toRows(s.value) : null; }
@@ -1522,7 +1530,7 @@
           if (s.status !== "fulfilled") console.warn("Chart source unavailable:", k, s.reason);
         });
         const live = list.status === "fulfilled" ? (list.value.summaries || []) : [];
-        if (list.status !== "fulfilled") console.warn("Intelligent Summary API unavailable; showing sample editions.", list.reason);
+        if (!live.length) console.warn("No Intelligent Summary editions found; showing sample editions.");
         isSample = !live.length;
         document.getElementById("sampleDisclaimer").hidden = !isSample;
         entries = toEntries(isSample ? SAMPLE : live);
