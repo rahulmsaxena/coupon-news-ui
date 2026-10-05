@@ -1,0 +1,1413 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Intelligent Summary | Point75</title>
+<link rel="canonical" href="https://point75.io/bondsummary/intellegent-summary">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&family=Source+Serif+4:opsz,wght@8..60,400;8..60,600&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
+<!--
+  Intelligent Summary page for point75.io/bondsummary/intellegent-summary (a sub-page of Bond Summary);
+  this Vercel project serves it at /intellegent-summary/.
+  Data: /api/intelsummary-list (structured editions, newest first) and /api/yields-ytd (FRED yields).
+  Until the generator writes editions, the page shows built-in SAMPLE editions under a clear notice.
+  ?sample=1 forces the sample editions.
+
+  Same design system and layout as bond_summary.html (styles copied unchanged, new components
+  added at the end of the stylesheet). Bond Summary itself is not modified.
+
+  Layout
+    List view:    headline + latest levels, the chart rail, then editions newest first.
+    Article view: key takeaway, market snapshot, Treasury yield movements, yield curve,
+                  why yields moved, macro, geopolitics, news and events, interpretation,
+                  what's next, sources; previous/next and keyboard navigation.
+-->
+<style>
+  :root {
+    --bg: #111214;          /* page: charcoal */
+    --surface: #1a1b1e;     /* cards */
+    --surface-2: #212226;   /* raised bits: tiles, pills */
+    --line: #2b2d32;        /* hairlines */
+    --gold: #c9a227;        /* accent: borders, labels, active states */
+    --gold-soft: rgba(201, 162, 39, .38);
+    --gold-wash: rgba(201, 162, 39, .10);
+    --ink: #ede8dc;         /* body text: cream */
+    --ink-2: #b8b2a5;
+    --ink-3: #8a857a;
+    --up: #d9695f;          /* yield up (bond prices down) */
+    --down: #72b58d;        /* yield down */
+    --s2: #8f9bb0;          /* 2Y: steel */
+    --s10: #ede8dc;         /* 10Y: cream */
+    --s30: #c9a227;         /* 30Y: gold */
+    --focus: #e6c35a;
+  }
+
+  * { box-sizing: border-box; }
+  html { scroll-behavior: smooth; background: var(--bg); color-scheme: dark; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font: 16px/1.55 Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: inherit; }
+  button { font: inherit; color: inherit; }
+  :focus-visible { outline: 2px solid var(--focus); outline-offset: 2px; border-radius: 4px; }
+  .wrap { max-width: 1240px; margin: 0 auto; padding: 0 24px; }
+  [hidden] { display: none !important; }
+  .serif { font-family: "Source Serif 4", Georgia, serif; }
+
+  /* Site header (only shown when this page is opened directly, not when embedded) */
+  .site { border-bottom: 1px solid var(--line); }
+  .site .wrap { display: flex; align-items: center; justify-content: space-between; height: 68px; }
+  .brand { font-family: "Source Serif 4", Georgia, serif; font-weight: 600; font-size: 1.15rem; text-decoration: none; color: var(--gold); }
+  .site nav { display: flex; gap: 28px; font-size: .95rem; }
+  .site nav a { text-decoration: none; color: var(--ink-2); padding: 4px 0; }
+  .site nav a[aria-current] { color: var(--ink); border-bottom: 1px solid var(--gold); }
+
+  /* Shared bits */
+  .eyebrow { font-size: .72rem; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); font-weight: 600; }
+  .card { background: var(--surface); border: 1px solid var(--gold-soft); border-radius: 10px; }
+  .seg { display: inline-flex; border: 1px solid var(--gold-soft); border-radius: 7px; overflow: hidden; }
+  .seg button { background: none; border: 0; padding: 4px 11px; font-size: .78rem; cursor: pointer; color: var(--ink-2); }
+  .seg button[aria-pressed="true"] { background: var(--gold); color: var(--bg); font-weight: 600; }
+  .iconbtn { width: 32px; height: 32px; display: inline-grid; place-items: center; border-radius: 50%; border: 1px solid var(--gold-soft); background: var(--surface); cursor: pointer; color: var(--ink); }
+  .iconbtn:hover:not(:disabled) { border-color: var(--gold); }
+  .iconbtn:disabled { opacity: .35; cursor: default; }
+  .iconbtn svg { width: 16px; height: 16px; stroke: currentColor; fill: none; stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+  .d.up { color: var(--up); } .d.down { color: var(--down); } .d.flat { color: var(--ink-3); }
+  .tag { display: inline-block; font-size: .64rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 99px; border: 1px solid var(--gold-soft); color: var(--gold); white-space: nowrap; }
+  .tag.solid { background: var(--gold); border-color: var(--gold); color: var(--bg); }
+  .tag.muted { border-color: var(--line); color: var(--ink-3); }
+
+  /* ---------- List view ---------- */
+  .hero { display: flex; align-items: flex-end; justify-content: space-between; gap: 24px; flex-wrap: wrap; padding: 30px 0 18px; }
+  .hero h1 { font-family: "Source Serif 4", Georgia, serif; font-weight: 600; font-size: clamp(1.7rem, 3.2vw, 2.3rem); margin: 4px 0 2px; line-height: 1.15; }
+  .hero p { margin: 0; color: var(--ink-2); font-size: .95rem; }
+
+  /* Latest levels */
+  .stats { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; margin-bottom: 26px; }
+  .stat { background: var(--surface); border: 1px solid var(--line); border-top: 2px solid var(--gold); border-radius: 0 0 8px 8px; padding: 10px 14px; }
+  .stat .k { font-size: .74rem; color: var(--ink-3); letter-spacing: .02em; }
+  .stat .v { font-size: 1.4rem; font-weight: 600; font-variant-numeric: tabular-nums; line-height: 1.25; }
+  .stat .d { font-size: .76rem; font-variant-numeric: tabular-nums; }
+  /* Range bar + record chip (new high/low vs. the prior window) */
+  .stat .vrow { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; }
+  .stat .rec { font-size: .6rem; font-weight: 700; letter-spacing: .08em; padding: 2px 7px; border-radius: 99px; color: var(--bg); white-space: nowrap; animation: recIn .5s ease-out .5s backwards; }
+  .stat.is-high .rec { background: var(--up); }
+  .stat.is-low  .rec { background: var(--down); }
+  .stat.is-high { --rec: var(--up); } .stat.is-low { --rec: var(--down); }
+  .stat.is-high .v, .stat.is-low .v { animation: recGlow 2.6s ease-out .2s 1; }
+  .rng { position: relative; height: 5px; margin: 10px 2px 4px; border-radius: 99px; background: var(--surface-2); }
+  .rng .fill, .rng .ext { position: absolute; top: 0; bottom: 0; }
+  .rng .fill { left: 0; background: var(--ink-3); border-radius: 99px 0 0 99px; opacity: .55; }
+  .rng .ext { background: var(--rec); }
+  .stat.is-high .rng .ext { transform-origin: left center; border-radius: 0 99px 99px 0; animation: recGrow .8s cubic-bezier(.2,.8,.2,1) .35s backwards; }
+  .stat.is-low  .rng .ext { transform-origin: right center; left: 0; border-radius: 99px 0 0 99px; animation: recGrow .8s cubic-bezier(.2,.8,.2,1) .35s backwards; }
+  .rng .tick { position: absolute; top: -5px; width: 3px; height: 15px; margin-left: -1.5px; border-radius: 2px; background: var(--ink); }
+  .rng-ends { display: flex; justify-content: space-between; font-size: .66rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .sr { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+  @keyframes recGlow { 0% { text-shadow: 0 0 0 transparent; } 35% { text-shadow: 0 0 18px var(--rec); } 100% { text-shadow: 0 0 0 transparent; } }
+  @keyframes recGrow { from { transform: scaleX(0); } }
+  @keyframes recIn { from { transform: translateY(5px); opacity: 0; } }
+  @media (prefers-reduced-motion: reduce) { .stat .v, .stat .rec, .rng .ext { animation: none !important; } }
+
+  /* Section heads */
+  .sechead { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; margin: 0 0 12px; }
+  .sechead h2 { margin: 0; font-size: .8rem; letter-spacing: .12em; text-transform: uppercase; color: var(--gold); font-weight: 600; }
+  .sechead .tools { display: flex; align-items: center; gap: 8px; }
+  .count { font-size: .78rem; color: var(--ink-3); font-variant-numeric: tabular-nums; min-width: 44px; text-align: right; }
+
+  /* Chart rail: scrolls sideways, snaps to each chart */
+  .rail { display: flex; gap: 16px; overflow-x: auto; scroll-snap-type: x mandatory; scroll-padding: 0 24px; padding: 2px 24px 14px; margin: 0 -24px 30px;
+          scrollbar-width: thin; scrollbar-color: var(--gold-soft) transparent; overscroll-behavior-x: contain; }
+  .rail::-webkit-scrollbar { height: 6px; }
+  .rail::-webkit-scrollbar-thumb { background: var(--gold-soft); border-radius: 3px; }
+  .chart { flex: 0 0 clamp(300px, calc((100% - 16px) / 2), 600px); scroll-snap-align: start; padding: 16px 18px 12px; display: flex; flex-direction: column; min-width: 0; }
+  .chart-head { display: flex; align-items: baseline; justify-content: space-between; gap: 10px; margin-bottom: 6px; }
+  .chart-head h3 { margin: 0; font-size: .98rem; font-weight: 600; }
+  .chart-head .group { font-size: .68rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); white-space: nowrap; }
+  .legend { display: flex; gap: 14px; font-size: .76rem; color: var(--ink-2); margin-bottom: 4px; flex-wrap: wrap; }
+  .legend i { display: inline-block; width: 14px; height: 3px; border-radius: 2px; vertical-align: middle; margin-right: 6px; }
+  .legend .dotkey { display: inline-block; width: 7px; height: 7px; border-radius: 50%; border: 2px solid var(--gold); background: var(--surface); vertical-align: 0; margin-right: 6px; }
+  .chartbox { position: relative; flex: 1; min-height: 220px; }
+  .chartbox svg { display: block; width: 100%; height: 220px; overflow: visible; }
+  .chartbox .msg { height: 220px; display: grid; place-items: center; text-align: center; color: var(--ink-3); font-size: .85rem; padding: 0 20px; }
+  .axis text { fill: var(--ink-3); font-size: 11px; font-family: Inter, sans-serif; }
+  .grid line { stroke: var(--line); }
+  .zero { stroke: var(--ink-3); stroke-dasharray: 2 3; }
+  .tip { position: absolute; pointer-events: none; background: var(--ink); color: var(--bg); font-size: .76rem; line-height: 1.45; padding: 7px 10px; border-radius: 6px; white-space: nowrap; transform: translate(-50%, calc(-100% - 10px)); opacity: 0; transition: opacity .1s; z-index: 2; }
+  .tip .open { opacity: .7; }
+  .source { font-size: .72rem; color: var(--ink-3); margin-top: 6px; }
+  .chart.soon { justify-content: center; align-items: center; text-align: center; border-style: dashed; background: transparent; min-height: 300px; }
+  .chart.soon p { margin: 6px 0 0; color: var(--ink-3); font-size: .85rem; max-width: 260px; }
+
+  /* Summaries across the page, newest first; the latest one is featured */
+  .filters input { font: inherit; font-size: .85rem; padding: 6px 10px; border: 1px solid var(--gold-soft); border-radius: 7px; background: var(--surface); color: var(--ink); width: 210px; }
+  .filters input::placeholder { color: var(--ink-3); }
+  .cards { list-style: none; margin: 0 0 64px; padding: 0; display: grid; grid-template-columns: repeat(auto-fill, minmax(290px, 1fr)); gap: 16px; }
+  .cards > li { display: flex; }
+  .sum { display: flex; flex-direction: column; gap: 8px; width: 100%; padding: 18px 20px; text-decoration: none; transition: border-color .15s, background .15s; }
+  .sum:hover { border-color: var(--gold); background: #1d1e22; }
+  .sum .tags { display: flex; gap: 6px; flex-wrap: wrap; align-items: center; }
+  .sum .when { font-size: .78rem; color: var(--ink-3); font-variant-numeric: tabular-nums; margin-left: auto; white-space: nowrap; }
+  .sum h3 { font-family: "Source Serif 4", Georgia, serif; font-size: 1.18rem; font-weight: 600; margin: 0; line-height: 1.3; }
+  .sum p { margin: 0; color: var(--ink-2); font-size: .9rem; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .sum .go { margin-top: auto; padding-top: 4px; font-size: .84rem; font-weight: 500; color: var(--gold); }
+  .cards > li.lead { grid-column: 1 / -1; }
+  .lead .sum { border-color: var(--gold); padding: 22px 26px; display: grid; grid-template-columns: minmax(0, 1fr) 260px; column-gap: 32px; }
+  .lead .sum .main { display: flex; flex-direction: column; gap: 10px; }
+  .lead .sum h3 { font-size: clamp(1.35rem, 2.4vw, 1.75rem); }
+  .lead .sum p { -webkit-line-clamp: 4; font-size: .98rem; }
+  .lead .sum .aside { border-left: 1px solid var(--line); padding-left: 24px; display: flex; flex-direction: column; justify-content: space-between; gap: 10px; font-size: .84rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .lead .sum .aside b { color: var(--ink); font-weight: 600; }
+  .lead .sum .aside .row { display: flex; justify-content: space-between; border-bottom: 1px solid var(--line); padding: 4px 0; }
+  .sum.read h3, .sum.read p { opacity: .6; }
+  .empty { padding: 40px 8px; color: var(--ink-3); grid-column: 1 / -1; }
+
+  /* ---------- Article view ---------- */
+  .progress { position: fixed; top: 0; left: 0; height: 3px; width: 0; background: var(--gold); z-index: 30; transition: width .1s linear; }
+  .stickybar { position: sticky; top: 0; z-index: 20; background: color-mix(in srgb, var(--bg) 92%, transparent); backdrop-filter: blur(8px); border-bottom: 1px solid transparent; transition: border-color .2s; }
+  .stickybar.scrolled { border-bottom-color: var(--line); }
+  .stickybar .wrap { display: flex; align-items: center; gap: 12px; height: 52px; max-width: 752px; }
+  .back { display: inline-flex; align-items: center; gap: 6px; padding: 6px 8px; margin-left: -8px; border-radius: 6px; font-size: .9rem; font-weight: 500; color: var(--gold); text-decoration: none; }
+  .back:hover { background: var(--gold-wash); }
+  .stickybar .crumb { margin-left: auto; font-size: .84rem; color: var(--ink-3); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .article { max-width: 720px; margin: 0 auto; padding: 26px 24px 40px; }
+  .article h1 { font-family: "Source Serif 4", Georgia, serif; font-weight: 600; font-size: clamp(1.8rem, 4vw, 2.4rem); line-height: 1.2; margin: 8px 0 10px; }
+  .meta { color: var(--ink-3); font-size: .86rem; }
+  .snap { display: flex; gap: 18px; flex-wrap: wrap; margin: 18px 0 0; padding: 12px 14px; border: 1px solid var(--gold-soft); border-radius: 8px; background: var(--surface); font-size: .84rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .snap b { color: var(--ink); font-weight: 600; }
+  .toc { display: flex; flex-wrap: wrap; gap: 8px; margin: 18px 0 0; padding: 0; list-style: none; }
+  .toc button { background: var(--surface); border: 1px solid var(--gold-soft); border-radius: 99px; padding: 5px 12px; font-size: .8rem; cursor: pointer; color: var(--ink-2); }
+  .toc button:hover { color: var(--ink); border-color: var(--gold); }
+  .body { font-family: "Source Serif 4", Georgia, serif; font-size: 1.12rem; line-height: 1.72; margin-top: 26px; }
+  .body h2 { font-family: Inter, sans-serif; font-size: 1.15rem; font-weight: 600; margin: 2em 0 .5em; scroll-margin-top: 70px; color: var(--gold); }
+  .body h3 { font-family: Inter, sans-serif; font-size: 1rem; font-weight: 600; margin: 1.6em 0 .4em; scroll-margin-top: 70px; }
+  .body p { margin: 0 0 1.1em; }
+  .body ul, .body ol { padding-left: 1.3em; margin: 0 0 1.1em; }
+  .body li { margin-bottom: .45em; }
+  .body strong { font-weight: 600; }
+  .body a { color: var(--gold); }
+  .body blockquote { margin: 1.4em 0; padding: 2px 0 2px 18px; border-left: 2px solid var(--gold); color: var(--ink-2); }
+  .body table { border-collapse: collapse; width: 100%; font-family: Inter, sans-serif; font-size: .88rem; margin: 1.2em 0; display: block; overflow-x: auto; }
+  .body th, .body td { border-bottom: 1px solid var(--line); padding: 8px 10px; text-align: left; }
+  .body hr { border: 0; border-top: 1px solid var(--line); margin: 2em 0; }
+  .pager { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-top: 40px; padding-top: 24px; border-top: 1px solid var(--line); }
+  .pager a { display: block; text-decoration: none; border: 1px solid var(--gold-soft); border-radius: 8px; padding: 12px 14px; background: var(--surface); transition: border-color .15s; }
+  .pager a:hover { border-color: var(--gold); }
+  .pager .lbl { font-size: .76rem; color: var(--ink-3); }
+  .pager .t { font-size: .9rem; font-weight: 500; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .pager .next { text-align: right; grid-column: 2; }
+  .allbtn { display: block; width: max-content; margin: 20px auto 0; font-size: .9rem; color: var(--gold); font-weight: 500; }
+  .kbd { text-align: center; color: var(--ink-3); font-size: .76rem; margin-top: 18px; }
+  kbd { font: inherit; border: 1px solid var(--line); border-bottom-width: 2px; border-radius: 4px; padding: 0 5px; }
+
+  .totop { position: fixed; right: 20px; bottom: 20px; width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--gold); background: var(--surface); cursor: pointer; display: grid; place-items: center; opacity: 0; transform: translateY(10px); pointer-events: none; transition: opacity .2s, transform .2s; z-index: 25; }
+  .totop.show { opacity: 1; transform: none; pointer-events: auto; }
+  .totop svg { width: 18px; height: 18px; stroke: var(--gold); }
+
+  .state { padding: 80px 16px; text-align: center; color: var(--ink-3); }
+  .state a { color: var(--gold); cursor: pointer; }
+
+  /* Embedded on point75.io: the page grows to fit, so the site handles scrolling and back-to-top */
+  .embedded .totop, .embedded .progress { display: none !important; }
+  .embedded .stickybar { position: static; }
+
+  @media (max-width: 900px) {
+    .lead .sum { grid-template-columns: 1fr; }
+    .lead .sum .aside { border-left: 0; padding-left: 0; border-top: 1px solid var(--line); padding-top: 10px; flex-direction: row; flex-wrap: wrap; gap: 4px 16px; justify-content: flex-start; }
+    .lead .sum .aside > div { width: 100%; display: grid; grid-template-columns: 1fr 1fr; column-gap: 20px; }
+    .lead .sum .aside > div .eyebrow { grid-column: 1 / -1; }
+    .lead .sum .aside .row { border-bottom: 1px solid var(--line); padding: 4px 0; }
+    .lead .sum .aside .go { width: 100%; }
+  }
+  @media (max-width: 760px) {
+    .wrap { padding: 0 16px; }
+    .site nav { gap: 14px; font-size: .85rem; }
+    .brand { font-size: 1rem; }
+    .hero { padding: 22px 0 14px; }
+    .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 22px; }
+    .stat { padding: 8px 10px; } .stat .v { font-size: 1.15rem; }
+    .rail { padding: 2px 16px 12px; margin: 0 -16px 24px; scroll-padding: 0 16px; gap: 12px; }
+    .chart { flex-basis: 88%; padding: 14px 14px 10px; }
+    .chartbox, .chartbox .msg { min-height: 200px; }
+    .chartbox svg, .chartbox .msg { height: 200px; }
+    .sechead .nav-arrows { display: none; }
+    .filters input { width: 100%; }
+    .filters { width: 100%; }
+    .cards { grid-template-columns: 1fr; gap: 12px; }
+    .lead .sum { padding: 18px; }
+    .article { padding: 22px 16px 40px; }
+    .body { font-size: 1.05rem; }
+    .totop { right: 14px; bottom: 14px; }
+    .kbd { display: none; }
+  }
+  @media (prefers-reduced-motion: reduce) { html { scroll-behavior: auto; } * { transition: none !important; } .rail { scroll-behavior: auto; } }
+  /* Disclaimer */
+  .disclaimer { border-top: 1px solid var(--line); color: var(--ink-3); font-size: .8rem; line-height: 1.6; }
+  .disclaimer .wrap { padding-top: 22px; padding-bottom: 28px; }
+  .disclaimer strong { color: var(--ink-2); font-weight: 600; }
+  .disclaimer p { margin: 0 0 8px; max-width: 820px; }
+  .disclaimer p:last-child { margin-bottom: 0; }
+  .disclaimer a { color: var(--ink-2); text-decoration: underline; text-decoration-color: var(--gold-soft); text-underline-offset: 2px; }
+  .disclaimer a:hover { color: var(--gold); }
+
+  /* =====================================================================================
+     Intelligent Summary additions. Everything above this line is copied unchanged from
+     bond_summary.html so both pages share one look; the rules below only add new pieces.
+     ===================================================================================== */
+
+  /* Sample-content notice (shown until the generator writes real editions) */
+  .crumbs { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; font-size: .82rem; color: var(--ink-3); margin: 0 0 10px; }
+  .crumbs a { color: var(--ink-2); text-decoration: none; border-bottom: 1px solid var(--gold-soft); }
+  .crumbs a:hover { color: var(--gold); border-bottom-color: var(--gold); }
+  .crumbs [aria-current] { color: var(--ink-2); }
+  .sample-note { display: flex; gap: 12px; align-items: flex-start; border: 1px dashed var(--gold-soft); background: var(--gold-wash); color: var(--ink-2); border-radius: 8px; padding: 10px 14px; font-size: .84rem; line-height: 1.5; margin: 0 0 22px; }
+  .sample-note .tag { margin-top: 1px; }
+  .article .sample-note { margin: 0 0 18px; }
+
+  /* Hero: regime of the latest edition, right-aligned */
+  .hero .latest { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; font-size: .84rem; color: var(--ink-2); }
+  .hero .latest .tags { display: flex; gap: 6px; flex-wrap: wrap; justify-content: flex-end; }
+
+  /* Summary cards: day moves under the preview */
+  .moves { display: flex; gap: 14px; flex-wrap: wrap; font-size: .8rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .moves b { font-weight: 600; }
+  .lead .sum .aside .row .d { font-size: .8rem; }
+
+  /* ---------- Article: wider column for tables and charts ---------- */
+  .stickybar.wide .wrap { max-width: 884px; }
+  .article.wide { max-width: 860px; }
+  .chips { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 12px; }
+
+  .takeaway { margin: 22px 0 0; padding: 16px 20px 18px; border: 1px solid var(--gold); border-left-width: 3px; border-radius: 8px; background: var(--surface); }
+  .takeaway p { font-family: "Source Serif 4", Georgia, serif; font-size: 1.16rem; line-height: 1.6; margin: 8px 0 0; }
+
+  .blk { margin-top: 44px; scroll-margin-top: 70px; }
+  .blk > h2 { font-size: 1.15rem; font-weight: 600; color: var(--gold); margin: 0 0 4px; }
+  .blk > .lede { color: var(--ink-2); font-size: .92rem; margin: 0 0 14px; }
+  .blk .none { color: var(--ink-3); font-size: .92rem; padding: 14px 16px; border: 1px dashed var(--line); border-radius: 8px; }
+  .num { font-variant-numeric: tabular-nums; }
+
+  /* Market snapshot */
+  .tiles { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+  .tiles .stat .d { margin-top: 2px; }
+  .xa { list-style: none; margin: 14px 0 0; padding: 0; border-top: 1px solid var(--line); }
+  .xa li { display: grid; grid-template-columns: 112px 74px minmax(0, 1fr); gap: 12px; align-items: baseline; padding: 9px 2px; border-bottom: 1px solid var(--line); font-size: .9rem; }
+  .xa .k { color: var(--ink); font-weight: 500; }
+  .xa .v { font-variant-numeric: tabular-nums; font-weight: 600; }
+  .xa .r { color: var(--ink-2); }
+
+  /* Treasury yield movements */
+  .tape { width: 100%; border-collapse: collapse; font-size: .92rem; font-variant-numeric: tabular-nums; }
+  .tape th { font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; text-align: right; padding: 0 10px 8px; border-bottom: 1px solid var(--gold-soft); }
+  .tape th:first-child, .tape td:first-child { text-align: left; padding-left: 2px; }
+  .tape td { text-align: right; padding: 10px; border-bottom: 1px solid var(--line); }
+  .tape tr.grp td { border-top: 1px solid var(--gold-soft); }
+  .tape td.name { color: var(--ink); font-weight: 500; }
+  .tape td.name small { display: block; color: var(--ink-3); font-weight: 400; font-size: .74rem; }
+  .tape .barcell { width: 34%; padding-right: 2px; }
+  .bar { position: relative; height: 10px; }
+  .bar::before { content: ""; position: absolute; left: 50%; top: -5px; bottom: -5px; width: 1px; background: var(--ink-3); opacity: .6; }
+  .bar i { position: absolute; top: 0; bottom: 0; border-radius: 2px; }
+  .bar i.up { left: 50%; background: var(--up); }
+  .bar i.down { right: 50%; background: var(--down); }
+  .d.sp { color: var(--ink-2); }
+  .bar i.sp { background: var(--ink-3); }
+  .tape-key { display: flex; justify-content: space-between; gap: 12px; flex-wrap: wrap; font-size: .74rem; color: var(--ink-3); margin-top: 8px; }
+
+  /* Yield curve */
+  .curve { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(0, 1fr); gap: 14px; align-items: stretch; }
+  .curve .card { padding: 16px 18px; }
+  .curvebox svg { display: block; width: 100%; height: auto; overflow: visible; }
+  .curvebox .lbl { font-size: 11px; font-family: Inter, sans-serif; }
+  .regime .name { font-family: "Source Serif 4", Georgia, serif; font-size: 1.3rem; font-weight: 600; margin: 6px 0 4px; }
+  .regime p { margin: 0; color: var(--ink-2); font-size: .88rem; }
+  .kv { margin-top: 12px; }
+  .kv .row { display: flex; justify-content: space-between; gap: 10px; padding: 7px 0; border-top: 1px solid var(--line); font-size: .86rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .kv .row b { color: var(--ink); font-weight: 600; white-space: nowrap; }
+  .kv .row .from { color: var(--ink-3); font-weight: 400; }
+
+  /* Why yields moved: driver cards */
+  .drivers { display: grid; gap: 14px; }
+  .drv { padding: 18px 20px; }
+  .drv-head { display: flex; gap: 12px; align-items: flex-start; }
+  .rank { flex: 0 0 28px; height: 28px; border-radius: 50%; border: 1px solid var(--gold); color: var(--gold); display: grid; place-items: center; font-size: .82rem; font-weight: 600; font-variant-numeric: tabular-nums; }
+  .drv h3 { font-family: "Source Serif 4", Georgia, serif; font-size: 1.18rem; font-weight: 600; margin: 1px 0 6px; line-height: 1.3; }
+  .drv .tags { display: flex; gap: 6px; flex-wrap: wrap; }
+  .attr { margin: 14px 0 4px; font-size: .82rem; color: var(--ink-2); font-variant-numeric: tabular-nums; }
+  .attr .track { height: 6px; border-radius: 99px; background: var(--surface-2); margin-top: 6px; overflow: hidden; }
+  .attr .track i { display: block; height: 100%; border-radius: 99px; background: var(--gold); }
+  .chain { display: grid; grid-template-columns: 132px minmax(0, 1fr); gap: 0 16px; margin: 12px 0 0; }
+  .chain dt { font-size: .7rem; letter-spacing: .1em; text-transform: uppercase; color: var(--ink-3); font-weight: 600; padding: 10px 0; border-top: 1px solid var(--line); }
+  .chain dd { margin: 0; padding: 8px 0; border-top: 1px solid var(--line); font-size: .95rem; line-height: 1.55; }
+  .chain dt.sig, .chain dd.sig { color: var(--gold); }
+  .chain dd.sig { color: var(--ink); font-weight: 500; }
+
+  /* Macro and geopolitical developments */
+  .devs { list-style: none; margin: 0; padding: 0; display: grid; gap: 10px; }
+  .dev { padding: 14px 16px; }
+  .dev-top { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+  .dev-top .time { margin-left: auto; font-size: .78rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .dev h3 { font-size: 1rem; font-weight: 600; margin: 8px 0 0; }
+  .dev p { margin: 6px 0 0; color: var(--ink-2); font-size: .9rem; }
+  .figs { display: flex; gap: 8px; flex-wrap: wrap; margin-top: 10px; }
+  .fig { background: var(--surface-2); border: 1px solid var(--line); border-radius: 6px; padding: 4px 10px; font-size: .8rem; color: var(--ink-3); font-variant-numeric: tabular-nums; }
+  .fig b { color: var(--ink); font-weight: 600; margin-left: 4px; }
+  .fig.hit { border-color: var(--gold-soft); }
+  .impact { font-size: .64rem; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; padding: 2px 8px; border-radius: 99px; white-space: nowrap; }
+  .impact.high { background: var(--up); color: var(--bg); }
+  .impact.moderate { border: 1px solid var(--gold); color: var(--gold); }
+  .impact.low, .impact.none { border: 1px solid var(--line); color: var(--ink-3); }
+
+  /* News and events timeline */
+  .tl { list-style: none; margin: 0; padding: 0; position: relative; }
+  .tl::before { content: ""; position: absolute; left: 83px; top: 6px; bottom: 6px; width: 1px; background: var(--gold-soft); }
+  .tl li { display: grid; grid-template-columns: 72px minmax(0, 1fr); gap: 24px; padding: 8px 0; position: relative; }
+  .tl li::before { content: ""; position: absolute; left: 79px; top: 15px; width: 9px; height: 9px; border-radius: 50%; background: var(--bg); border: 2px solid var(--gold); }
+  .tl .t { font-size: .8rem; color: var(--ink-3); text-align: right; padding-top: 3px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .tl .what { font-size: .95rem; }
+  .tl .what .tag { margin-right: 8px; vertical-align: 1px; }
+  .tl .react { font-size: .84rem; color: var(--ink-2); margin-top: 3px; font-variant-numeric: tabular-nums; }
+
+  /* Market interpretation */
+  .interp { padding: 18px 20px; }
+  .interp-top { display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap; }
+  .meter { display: inline-flex; align-items: center; gap: 8px; font-size: .84rem; color: var(--ink-2); }
+  .meter .pips { display: inline-flex; gap: 3px; }
+  .meter .pips i { width: 18px; height: 6px; border-radius: 2px; background: var(--surface-2); border: 1px solid var(--line); }
+  .meter .pips i.on { background: var(--gold); border-color: var(--gold); }
+  .interp p { font-family: "Source Serif 4", Georgia, serif; font-size: 1.08rem; line-height: 1.65; margin: 12px 0 0; }
+  .interp .change { font-family: Inter, sans-serif; font-size: .9rem; color: var(--ink-2); margin-top: 14px; padding-top: 12px; border-top: 1px solid var(--line); }
+  .interp .change b { color: var(--ink); font-weight: 600; }
+
+  /* What's next */
+  .next { list-style: none; margin: 0; padding: 0; border-top: 1px solid var(--line); }
+  .next li { display: grid; grid-template-columns: 140px minmax(0, 1fr); gap: 12px; padding: 9px 2px; border-bottom: 1px solid var(--line); font-size: .92rem; }
+  .next .when { color: var(--ink-3); font-variant-numeric: tabular-nums; }
+
+  /* Sources */
+  .srcs { list-style: none; margin: 0; padding: 0; font-size: .86rem; color: var(--ink-2); display: grid; gap: 6px; }
+  .srcs a { color: var(--ink-2); text-decoration: underline; text-decoration-color: var(--gold-soft); text-underline-offset: 2px; }
+  .srcs a:hover { color: var(--gold); }
+
+  @media (max-width: 760px) {
+    .tiles { grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; }
+    .xa li { grid-template-columns: 96px 64px minmax(0, 1fr); gap: 8px; font-size: .85rem; }
+    .xa .r { grid-column: 1 / -1; font-size: .82rem; margin-top: -2px; }
+    .tape { font-size: .84rem; }
+    .tape th, .tape td { padding-left: 6px; padding-right: 6px; }
+    .tape .wk { display: none; }
+    .tape .barcell { width: 28%; }
+    .curve { grid-template-columns: 1fr; }
+    .chain { grid-template-columns: 1fr; }
+    .chain dt { padding: 10px 0 0; }
+    .chain dd { border-top: 0; padding: 2px 0 8px; }
+    .drv { padding: 16px; }
+    .site .wrap { gap: 14px; }
+    .brand { white-space: nowrap; }
+    .site nav { gap: 12px; font-size: .8rem; overflow-x: auto; scrollbar-width: none; }
+    .site nav a { white-space: nowrap; }
+  }
+  @media (max-width: 480px) {
+    .site .wrap { flex-wrap: wrap; height: auto; padding-top: 14px; padding-bottom: 10px; row-gap: 8px; }
+    .site nav { width: 100%; justify-content: space-between; gap: 10px; }
+    .tl::before { left: 63px; }
+    .tl li { grid-template-columns: 54px minmax(0, 1fr); gap: 20px; }
+    .tl li::before { left: 59px; }
+    .next li { grid-template-columns: 1fr; gap: 0; }
+    .hero .latest { align-items: flex-start; }
+    .hero .latest .tags { justify-content: flex-start; }
+  }
+</style>
+</head>
+<body>
+
+<div class="progress" id="progress" hidden></div>
+
+<header class="site" id="site" hidden>
+  <div class="wrap">
+    <a class="brand" href="https://point75.io/">Paper &amp; Cadence</a>
+    <nav aria-label="Main">
+      <a href="https://point75.io/">Journal</a>
+      <a href="https://point75.io/news">News</a>
+      <a href="https://point75.io/bondsummary" aria-current="true">Bond Summary</a>
+    </nav>
+  </div>
+</header>
+
+<main id="app"><div class="state">Loading Intelligent Summary…</div></main>
+
+<footer class="disclaimer" role="contentinfo">
+  <div class="wrap">
+    <p><strong>Disclaimer.</strong> Intelligent Summaries are informational market commentary built from public market data, official economic releases and news reports. They describe what markets appear to be pricing; they are not forecasts, and any errors or interpretations are our own.</p>
+    <p id="sampleDisclaimer" hidden><strong>Sample editions.</strong> Editions marked "Sample" use invented figures and events to preview the page format. They do not describe real market activity and must not be relied on.</p>
+    <p>Nothing here is investment, tax, or legal advice, or a recommendation to buy or sell any security. Yields and prices change and may be out of date. Bond investing involves risk, including interest-rate, credit, and liquidity risk and possible loss of principal. Consult a qualified financial professional before making investment decisions.</p>
+  </div>
+</footer>
+
+<button class="totop" id="totop" aria-label="Back to top" title="Back to top">
+  <svg viewBox="0 0 24 24" fill="none" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 19V5M5 12l7-7 7 7"/></svg>
+</button>
+
+<script>
+(function () {
+  "use strict";
+
+  // Same origin when served from the Vercel project (or `vercel dev`); absolute URL when
+  // this code runs anywhere else, e.g. embedded on point75.io.
+  const VERCEL_API = "https://coupon-news-ui.vercel.app";
+  const onVercel = /\.vercel\.app$/.test(location.hostname) || /^(localhost|127\.0\.0\.1)$/.test(location.hostname);
+  const API = onVercel ? "" : VERCEL_API;
+
+  // ?sample=1 always shows the sample editions (handy for reviewing the layout).
+  const FORCE_SAMPLE = /[?&]sample=1\b/.test(location.search);
+
+  /* =====================================================================================
+     CHARTS: identical to Bond Summary (same FRED feed, same look). See bond_summary.html
+     for how to add a chart. The 5-year line and a 5s30s chart can join once DGS5 is
+     added to the yields:ytd feed.
+     ===================================================================================== */
+  const SOURCES = {
+    treasuries: { url: "/api/yields-ytd",
+      toRows: j => Object.assign(historyToRows(j.yields), { year: j.yields_1y ? historyToRows(j.yields_1y) : null }) },
+  };
+  const CHARTS = [
+    { id: "treasuries", group: "Rates", title: "Treasury yields", source: "treasuries", unit: "%",
+      series: [
+        { key: "DGS2",  label: "2-year",  color: "var(--s2)" },
+        { key: "DGS10", label: "10-year", color: "var(--s10)", bold: true },
+        { key: "DGS30", label: "30-year", color: "var(--s30)" },
+      ],
+      markSummaries: "DGS10", note: "Daily closing yields from FRED" },
+    { id: "curve", group: "Rates", title: "Yield curve: 10-year minus 2-year", source: "treasuries", unit: "bp",
+      derive: r => (r.DGS10 != null && r.DGS2 != null) ? { CURVE: (r.DGS10 - r.DGS2) * 100 } : null,
+      series: [{ key: "CURVE", label: "10Y – 2Y spread", color: "var(--s30)", bold: true }],
+      zeroLine: true, note: "Below zero means the curve is inverted" },
+  ];
+  const COMING_SOON = "5-year yields and the 5s30s curve join once the 5Y is in the yield feed.";
+
+  /* =====================================================================================
+     EDITION FORMAT (what /api/intelsummary-list returns in "summaries", newest first)
+
+     { market_date: "YYYY-MM-DD", key, edition: "close", generated_at, as_of: "4:15 PM ET",
+       title, regime, regime_note, conviction: "High" | "Medium" | "Low",
+       takeaway,                                      // Key takeaway, 2-3 sentences
+       tape:   [{ k: "2Y", level: 3.62, d: 11, w: 14, unit: "%" | "bp", group? }],
+       fed:    { meeting, odds, odds_prev, priced, priced_prev, horizon },
+       cross:  [{ k, v, dir: "up" | "down" | "flat", read }],
+       drivers:[{ title, tags: [], bp?, of?, total?, impact?, what, why, response, signal }],
+       macro:  [{ tag, title, time?, actual?, consensus?, prior?, note? }],
+       geo:    [{ title, impact: "High" | "Moderate" | "Low" | "None", text }],
+       events: [{ t: "8:30 AM", cat, title, react }],
+       interpretation: { text, change },
+       watch:  [{ when, what }],
+       sources:[{ name, url }] }
+
+     SAMPLE below follows that format with invented numbers. It is shown only while the
+     API has no editions (or with ?sample=1), always under a "Sample content" notice.
+     ===================================================================================== */
+  const SAMPLE = [
+    {
+      market_date: "2026-10-02", key: "2026-10-02", edition: "close", generated_at: "2026-10-02T20:15:00Z", as_of: "4:15 PM ET",
+      title: "Payrolls beat pushes the Fed further out; the curve bear-flattens",
+      regime: "Bear flattener", regime_note: "Policy repricing", conviction: "High",
+      takeaway: "A strong payrolls report lifted the front end as markets took roughly one 25 bp cut out of next year's pricing. The curve bear-flattened and breakevens barely moved: this was a policy repricing, not an inflation scare.",
+      tape: [
+        { k: "2Y", level: 3.62, d: 11, w: 14 }, { k: "5Y", level: 3.71, d: 9, w: 12 },
+        { k: "10Y", level: 4.08, d: 6, w: 8 }, { k: "30Y", level: 4.62, d: 3, w: 4 },
+        { k: "2s10s", level: 46, d: -5, w: -6, unit: "bp", group: "Curve" }, { k: "5s30s", level: 91, d: -6, w: -8, unit: "bp", group: "Curve" },
+        { k: "10Y real", level: 1.78, d: 5, w: 6, group: "10Y split" }, { k: "10Y breakeven", level: 2.30, d: 1, w: 2, group: "10Y split" },
+      ],
+      fed: { meeting: "Oct 28", odds: 38, odds_prev: 62, priced: 46, priced_prev: 68, horizon: "through Dec 2027" },
+      cross: [
+        { k: "S&P 500", v: "+0.4%", dir: "up", read: "Stocks rose with yields: a growth-positive read, not a rates scare." },
+        { k: "DXY", v: "+0.6%", dir: "up", read: "Wider US front-end spreads supported the dollar." },
+        { k: "Brent", v: "−2.1%", dir: "down", read: "Lower oil kept breakevens in check." },
+        { k: "IG spreads", v: "−1 bp", dir: "down", read: "Credit calm; no stress from higher yields." },
+        { k: "MOVE", v: "−3", dir: "down", read: "Rate volatility eased once the data was out." },
+      ],
+      drivers: [
+        { title: "Payrolls beat", tags: ["Labor", "Fed"], bp: 9, of: "2Y", total: 11,
+          what: "Payrolls +210k vs +120k expected (+1.6σ); unemployment 4.2% vs 4.3%; average hourly earnings +0.3% m/m, in line.",
+          why: "It undercuts the softening-labor case that underpinned further rate cuts.",
+          response: "2Y +9 bp between 8:30 and 8:45 ET; cuts priced through Dec 2027 fell from 68 bp to 46 bp.",
+          signal: "Front-end and real-yield led: the market sees a later Fed, not hotter inflation." },
+        { title: "Oil slide capped breakevens", tags: ["Energy", "Inflation"], impact: "Held the 10Y breakeven to +1 bp",
+          what: "Brent fell 2.1% after OPEC+ signalled higher output from November.",
+          why: "Cheaper energy offset the inflation read-through of a strong jobs number.",
+          response: "10Y breakeven +1 bp only; 30Y +3 bp against +11 bp for the 2Y.",
+          signal: "Inflation expectations look anchored; the flattening suggests doubt that the growth impulse lasts." },
+      ],
+      macro: [
+        { tag: "Labor", title: "September nonfarm payrolls", time: "8:30 AM", actual: "+210k", consensus: "+120k", prior: "+95k", note: "Largest upside surprise since spring; prior two months revised up 22k." },
+        { tag: "Labor", title: "Unemployment rate", time: "8:30 AM", actual: "4.2%", consensus: "4.3%", prior: "4.3%" },
+        { tag: "Inflation", title: "Average hourly earnings", time: "8:30 AM", actual: "+0.3% m/m", consensus: "+0.3%", prior: "+0.4%", note: "Wages in line, which kept breakevens quiet." },
+        { tag: "Supply", title: "Treasury supply", note: "No auctions today. Next week's 3Y, 10Y and 30Y auctions ($58bn / $42bn / $25bn) are the next test of long-end demand." },
+      ],
+      geo: [
+        { title: "Middle East ceasefire talks", impact: "Low", text: "Reports of progress had no measurable effect on Treasuries; oil's drop was driven by OPEC+ supply, not a shrinking risk premium." },
+      ],
+      events: [
+        { t: "8:30 AM", cat: "Data", title: "Payrolls +210k vs +120k expected", react: "2Y +9 bp in 15 minutes; October cut odds 62% → 41%" },
+        { t: "10:00 AM", cat: "Energy", title: "OPEC+ signals higher November output", react: "Brent −1.8% by noon; 10Y breakeven −1 bp" },
+        { t: "12:00 PM", cat: "Fed", title: "Regional Fed president says the committee can be patient on cuts", react: "Little change; October odds 40%" },
+        { t: "3:00 PM", cat: "Close", title: "Cash Treasuries settle", react: "2Y +11 bp, 30Y +3 bp on the day" },
+      ],
+      interpretation: {
+        text: "Three signals agree: the front end led, real yields did the work, and risk assets rallied. The market is repricing the timing of easing, not its direction. Flattening with steady breakevens says traders see a firmer near-term economy but not a lasting inflation problem.",
+        change: "A hot core CPI next week that lifts breakevens would turn this into an inflation story and likely steepen the curve.",
+      },
+      watch: [
+        { when: "Tue 1:00 PM", what: "3-year note auction ($58bn)" },
+        { when: "Wed 8:30 AM", what: "September CPI" },
+        { when: "Wed 1:00 PM", what: "10-year note auction ($42bn)" },
+        { when: "Wed 2:00 PM", what: "FOMC minutes" },
+        { when: "Thu 1:00 PM", what: "30-year bond auction ($25bn)" },
+      ],
+      sources: [
+        { name: "BLS: The Employment Situation", url: "https://www.bls.gov/news.release/empsit.toc.htm" },
+        { name: "U.S. Treasury: daily par yield curve rates", url: "https://home.treasury.gov/resource-center/data-chart-center/interest-rates/TextView?type=daily_treasury_yield_curve" },
+        { name: "FRED: 10-year Treasury yield (DGS10)", url: "https://fred.stlouisfed.org/series/DGS10" },
+        { name: "CME FedWatch", url: "https://www.cmegroup.com/markets/interest-rates/cme-fedwatch-tool.html" },
+      ],
+    },
+    {
+      market_date: "2026-10-01", key: "2026-10-01", edition: "close", generated_at: "2026-10-01T20:15:00Z", as_of: "4:15 PM ET",
+      title: "Weak manufacturing data revives October cut bets; the front end leads a rally",
+      regime: "Bull steepener", regime_note: "Easing brought forward", conviction: "Medium",
+      takeaway: "A soft ISM manufacturing print and cooler job openings pulled the 2Y down 8 bp as October cut odds rose to 62%. The long end rallied less and stocks fell, so this reads as growth worry feeding Fed expectations rather than a broad flight to safety.",
+      tape: [
+        { k: "2Y", level: 3.51, d: -8, w: -3 }, { k: "5Y", level: 3.62, d: -7, w: -2 },
+        { k: "10Y", level: 4.02, d: -5, w: -1 }, { k: "30Y", level: 4.59, d: -3, w: 1 },
+        { k: "2s10s", level: 51, d: 3, w: 2, unit: "bp", group: "Curve" }, { k: "5s30s", level: 97, d: 4, w: 3, unit: "bp", group: "Curve" },
+        { k: "10Y real", level: 1.73, d: -3, w: -2, group: "10Y split" }, { k: "10Y breakeven", level: 2.29, d: -2, w: 1, group: "10Y split" },
+      ],
+      fed: { meeting: "Oct 28", odds: 62, odds_prev: 48, priced: 68, priced_prev: 58, horizon: "through Dec 2027" },
+      cross: [
+        { k: "S&P 500", v: "−0.6%", dir: "down", read: "Stocks fell with yields: a growth scare rather than a disinflation rally." },
+        { k: "DXY", v: "−0.4%", dir: "down", read: "Lower US front-end yields weighed on the dollar." },
+        { k: "WTI", v: "+1.1%", dir: "up", read: "Shipping headlines lifted oil but not breakevens." },
+        { k: "HY spreads", v: "+6 bp", dir: "up", read: "Modest widening, consistent with growth worry." },
+        { k: "VIX", v: "+1.9", dir: "up", read: "Some hedging demand, no panic." },
+      ],
+      drivers: [
+        { title: "ISM manufacturing miss", tags: ["Growth", "Fed"], bp: 6, of: "2Y", total: -8,
+          what: "ISM manufacturing 47.6 vs 49.2 expected; new orders 45.9, the lowest in over a year.",
+          why: "It points to a faster slowdown in goods demand, strengthening the case for an October cut.",
+          response: "2Y −6 bp between 10:00 and 10:15 ET; October cut odds rose from 48% to 60%.",
+          signal: "Front-end and real-yield led: a growth story feeding policy expectations." },
+        { title: "Job openings fall", tags: ["Labor"], bp: 2, of: "2Y", total: -8,
+          what: "JOLTS openings 7.1m vs 7.5m expected; the quits rate slipped to 1.9%.",
+          why: "Cooler labor demand supports the view that wage pressure keeps easing.",
+          response: "Extended the 10:00 rally; 5Y −2 bp over the following hour.",
+          signal: "Confirms the ISM read rather than adding a new theme." },
+        { title: "Red Sea shipping headlines", tags: ["Geopolitics", "Energy"], impact: "Brief bid, fully faded",
+          what: "Reports of an attack on a commercial vessel lifted oil 1.1%.",
+          why: "Raises energy and freight costs, a modest inflation risk, but also a classic risk-off trigger.",
+          response: "10Y −2 bp at 11:05 ET, reversed by 1:00 PM; breakevens unchanged on the headline.",
+          signal: "Low market impact: no lasting flight-to-quality bid." },
+      ],
+      macro: [
+        { tag: "Growth", title: "ISM manufacturing (September)", time: "10:00 AM", actual: "47.6", consensus: "49.2", prior: "48.7", note: "New orders and employment both fell; prices paid eased." },
+        { tag: "Labor", title: "JOLTS job openings (August)", time: "10:00 AM", actual: "7.1m", consensus: "7.5m", prior: "7.4m" },
+        { tag: "Supply", title: "Auction sizes announced", note: "Next week's 3Y, 10Y and 30Y sizes held at $58bn / $42bn / $25bn, as expected." },
+      ],
+      geo: [
+        { title: "Red Sea shipping incident", impact: "Low", text: "Briefly bid Treasuries and lifted oil; the move in yields reversed within two hours." },
+        { title: "EU–US trade talks resume", impact: "None", text: "No new tariff announcements; no market reaction." },
+      ],
+      events: [
+        { t: "10:00 AM", cat: "Data", title: "ISM manufacturing 47.6 and JOLTS 7.1m, both below expectations", react: "2Y −6 bp in 15 minutes" },
+        { t: "11:05 AM", cat: "Geopolitics", title: "Reports of an attack on a vessel in the Red Sea", react: "10Y −2 bp; WTI +1.4%" },
+        { t: "1:00 PM", cat: "Markets", title: "Headline bid fades as no follow-up reports emerge", react: "10Y back to −5 bp on the day" },
+        { t: "2:30 PM", cat: "Fed", title: "Fed governor says data dependence cuts both ways", react: "No change in pricing" },
+      ],
+      interpretation: {
+        text: "The move is consistent with markets bringing easing forward on weaker growth: the 2Y fell most, real yields did most of the work, and stocks and credit softened. Conviction is medium because the long end barely rallied and high-yield widening was small, so this is not yet a broad risk-off move.",
+        change: "A strong payrolls report on Friday would likely reverse much of today's front-end rally.",
+      },
+      watch: [
+        { when: "Thu 8:30 AM", what: "Weekly jobless claims" },
+        { when: "Fri 8:30 AM", what: "September payrolls and unemployment" },
+        { when: "Fri 10:00 AM", what: "Factory orders" },
+      ],
+      sources: [
+        { name: "ISM: Manufacturing PMI report", url: "https://www.ismworld.org/supply-management-news-and-reports/reports/ism-report-on-business/" },
+        { name: "BLS: Job Openings and Labor Turnover Survey", url: "https://www.bls.gov/jlt/" },
+        { name: "FRED: 2-year Treasury yield (DGS2)", url: "https://fred.stlouisfed.org/series/DGS2" },
+      ],
+    },
+    {
+      market_date: "2026-09-30", key: "2026-09-30", edition: "close", generated_at: "2026-09-30T20:15:00Z", as_of: "4:15 PM ET",
+      title: "A weak 7-year auction and an oil jump steepen the curve",
+      regime: "Bear steepener", regime_note: "Supply and oil", conviction: "Medium",
+      takeaway: "A soft 7-year auction and a 3% jump in Brent pushed long-end yields up 7–9 bp while the 2Y barely moved. Breakevens did more than half of the 10Y move, so the long end is pricing more inflation risk and term premium, not a more hawkish Fed.",
+      tape: [
+        { k: "2Y", level: 3.59, d: 2, w: 4 }, { k: "5Y", level: 3.69, d: 4, w: 6 },
+        { k: "10Y", level: 4.07, d: 7, w: 9 }, { k: "30Y", level: 4.62, d: 9, w: 11 },
+        { k: "2s10s", level: 48, d: 5, w: 5, unit: "bp", group: "Curve" }, { k: "5s30s", level: 93, d: 5, w: 5, unit: "bp", group: "Curve" },
+        { k: "10Y real", level: 1.76, d: 3, w: 4, group: "10Y split" }, { k: "10Y breakeven", level: 2.31, d: 4, w: 5, group: "10Y split" },
+      ],
+      fed: { meeting: "Oct 28", odds: 48, odds_prev: 50, priced: 58, priced_prev: 60, horizon: "through Dec 2027" },
+      cross: [
+        { k: "S&P 500", v: "−0.3%", dir: "down", read: "Mild pressure from higher long-end yields." },
+        { k: "Brent", v: "+3.2%", dir: "up", read: "The main driver of the 4 bp rise in breakevens." },
+        { k: "DXY", v: "+0.2%", dir: "up", read: "Little changed; front-end spreads barely moved." },
+        { k: "MOVE", v: "+4", dir: "up", read: "Long-end volatility picked up after the auction." },
+      ],
+      drivers: [
+        { title: "OPEC+ extends cuts; Brent +3.2%", tags: ["Energy", "Inflation"], bp: 4, of: "10Y", total: 7,
+          what: "OPEC+ extended production cuts through the first quarter; Brent rose 3.2%.",
+          why: "Higher energy prices lift near-term inflation expectations.",
+          response: "10Y breakeven +4 bp, mostly between 9:30 and 11:00 ET.",
+          signal: "Breakeven-led: inflation risk, not growth optimism." },
+        { title: "7-year auction tails", tags: ["Supply"], bp: 3, of: "10Y", total: 7,
+          what: "$44bn 7-year sold at 3.94%, 1.8 bp above the when-issued yield; bid-to-cover 2.41 vs a 2.58 six-auction average; indirect bidders 61% vs 68%.",
+          why: "Weak end-investor demand amid heavy issuance raises the premium investors want for holding duration.",
+          response: "10Y +3 bp and 30Y +4 bp in the 15 minutes after 1:00 PM ET.",
+          signal: "Term premium, not policy: the 2Y was flat through the auction." },
+      ],
+      macro: [
+        { tag: "Growth", title: "Chicago PMI (September)", time: "9:45 AM", actual: "46.2", consensus: "47.5", prior: "47.1", note: "A miss that markets ignored: the front end barely moved." },
+        { tag: "Supply", title: "7-year note auction", time: "1:00 PM", actual: "1.8 bp tail", consensus: "WI 3.92%", prior: "0.4 bp tail" },
+        { tag: "Fed", title: "Fed pricing", note: "October cut odds little changed at 48%; no scheduled Fed speakers." },
+        { tag: "Flows", title: "Quarter-end rebalancing", note: "Index-extension buying supported the long end in the last hour, trimming the day's steepening." },
+      ],
+      geo: [],
+      events: [
+        { t: "9:45 AM", cat: "Data", title: "Chicago PMI 46.2 vs 47.5 expected", react: "No meaningful reaction" },
+        { t: "10:30 AM", cat: "Energy", title: "OPEC+ extends production cuts through Q1", react: "Brent +2.6% within the hour; 10Y breakeven +3 bp" },
+        { t: "1:00 PM", cat: "Supply", title: "7-year auction tails 1.8 bp", react: "10Y +3 bp, 30Y +4 bp in 15 minutes" },
+        { t: "3:00 PM", cat: "Flows", title: "Quarter-end buying in the long end", react: "30Y pared 1 bp of its rise" },
+      ],
+      interpretation: {
+        text: "Two signals point the same way: the long end led and breakevens did over half of the 10Y move, while the 2Y and Fed pricing barely changed. Conviction is medium: quarter-end flows can distort the last hour of trading, and part of the auction weakness may be positioning ahead of next week's supply.",
+        change: "Strong demand at next week's 10Y and 30Y auctions would suggest today's supply concern was temporary.",
+      },
+      watch: [
+        { when: "Thu 10:00 AM", what: "ISM manufacturing and JOLTS job openings" },
+        { when: "Fri 8:30 AM", what: "September payrolls" },
+      ],
+      sources: [
+        { name: "TreasuryDirect: auction results", url: "https://www.treasurydirect.gov/auctions/announcements-data-results/" },
+        { name: "FRED: 10-year breakeven inflation (T10YIE)", url: "https://fred.stlouisfed.org/series/T10YIE" },
+      ],
+    },
+  ];
+
+  /* ---------- state ---------- */
+  const app = document.getElementById("app");
+  const progress = document.getElementById("progress");
+  const totop = document.getElementById("totop");
+  let embedded = false; try { embedded = window.self !== window.top; } catch (e) { embedded = true; }
+  document.getElementById("site").hidden = embedded || !onVercel;
+
+  // Embedded on point75.io: report height and view changes to the host page, exactly as
+  // Bond Summary does, so the same embed code works for both pages.
+  const tellHost = msg => { if (embedded) try { window.parent.postMessage(Object.assign({ p75: true }, msg), "*"); } catch (e) {} };
+  if (embedded) {
+    document.documentElement.classList.add("embedded");
+    let lastH = 0;
+    const sendHeight = () => { const h = Math.ceil(document.documentElement.getBoundingClientRect().height); if (Math.abs(h - lastH) > 1) { lastH = h; tellHost({ type: "height", h }); } };
+    if (window.ResizeObserver) new ResizeObserver(sendHeight).observe(document.documentElement);
+    window.addEventListener("load", sendHeight);
+    setInterval(sendHeight, 1500);
+  }
+
+  let entries = [];            // editions, newest first
+  let isSample = false;
+  const data = {};             // source key -> rows (oldest first), or null if it failed
+  let range = "3M";
+  let query = "";
+  let listScrollY = 0;
+  let current = null;
+
+  /* ---------- helpers ---------- */
+  const store = {
+    get(k, d) { try { const v = localStorage.getItem(k); return v ? JSON.parse(v) : d; } catch (e) { return d; } },
+    set(k, v) { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) {} }
+  };
+  const readSet = new Set(store.get("intelsummary:read", []));
+  const markRead = id => { readSet.add(id); store.set("intelsummary:read", [...readSet].slice(-200)); };
+  range = store.get("intelsummary:range", "3M");
+
+  const esc = s => String(s ?? "").replace(/[&<>"']/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" }[c]));
+
+  // "2026-09-25" -> local Date for Sep 25. (new Date("2026-09-25") would be UTC midnight,
+  // which displays as Sep 24 in US time zones.)
+  const parseDay = s => { const m = String(s || "").match(/^(\d{4})-(\d{2})-(\d{2})/); return m ? new Date(+m[1], +m[2] - 1, +m[3]) : null; };
+  const fmtLong = d => d.toLocaleDateString("en-US", { month: "long", day: "numeric", year: "numeric" });
+  const fmtFull = d => d.toLocaleDateString("en-US", { weekday: "long", month: "long", day: "numeric", year: "numeric" });
+  const fmtDay = d => d.toLocaleDateString("en-US", { weekday: "short" });
+  const fmtShort = d => d.toLocaleDateString("en-US", { month: "short", day: "numeric" });
+  const fmtStamp = ts => new Date(ts).toLocaleString("en-US", { weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit", timeZoneName: "short" });
+
+  // { KEY: { history: [{date, value}] }, ... } -> [{date, KEY: value, ...}] oldest first
+  function historyToRows(obj) {
+    const map = new Map();
+    Object.entries(obj || {}).forEach(([key, s]) => ((s && s.history) || []).forEach(h => {
+      if (h.value == null || isNaN(h.value)) return;
+      if (!map.has(h.date)) map.set(h.date, { date: h.date });
+      map.get(h.date)[key] = +h.value;
+    }));
+    return [...map.values()].sort((a, b) => a.date.localeCompare(b.date));
+  }
+
+  function plainText(md) {
+    return md.replace(/```[\s\S]*?```/g, " ").replace(/^#+\s.*$/gm, " ")
+      .replace(/^\s*(?:[-*+]|\d+\.|>)\s+/gm, "").replace(/[*_`|~]+/g, "")
+      .replace(/\[([^\]]+)\]\([^)]+\)/g, "$1").replace(/\s+/g, " ").trim();
+  }
+
+  function renderMarkdown(md) {
+    if (window.marked) {
+      const html = window.marked.parse(md, { gfm: true, breaks: false });
+      return window.DOMPurify ? window.DOMPurify.sanitize(html) : html;
+    }
+    // Fallback if the CDN is unreachable.
+    const inline = s => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>").replace(/(^|\W)\*(?!\s)(.+?)\*(?=\W|$)/g, "$1<em>$2</em>");
+    return md.split(/\n{2,}/).map(block => {
+      const lines = block.split("\n").filter(l => l.trim());
+      if (!lines.length) return "";
+      const h = lines[0].match(/^(#{1,4})\s+(.*)/);
+      if (h) { const lvl = Math.max(2, Math.min(3, h[1].length)); const rest = lines.slice(1).join("\n");
+        return `<h${lvl}>${inline(h[2])}</h${lvl}>` + (rest ? renderMarkdown(rest) : ""); }
+      if (lines.every(l => /^\s*[-*+]\s/.test(l))) return "<ul>" + lines.map(l => "<li>" + inline(l.replace(/^\s*[-*+]\s/, "")) + "</li>").join("") + "</ul>";
+      if (lines.every(l => /^\s*\d+\.\s/.test(l))) return "<ol>" + lines.map(l => "<li>" + inline(l.replace(/^\s*\d+\.\s/, "")) + "</li>").join("") + "</ol>";
+      if (lines.every(l => /^\s*>/.test(l))) return "<blockquote><p>" + inline(lines.map(l => l.replace(/^\s*>\s?/, "")).join(" ")) + "</p></blockquote>";
+      if (/^(-{3,}|\*{3,})$/.test(block.trim())) return "<hr>";
+      return "<p>" + inline(lines.join(" ")) + "</p>";
+    }).join("");
+  }
+
+  /* ---------- Intelligent Summary helpers ---------- */
+  const signed = (n, unit) => (n > 0 ? "+" : n < 0 ? "−" : "±") + Math.abs(n) + (unit ? " " + unit : "");
+  const dirCls = n => n > 0 ? "up" : n < 0 ? "down" : "flat";
+  const lvl = t => t.unit === "bp" ? Math.round(t.level) + " bp" : Number(t.level).toFixed(2) + "%";
+  const tapeGet = (e, k) => (e.tape || []).find(t => t.k === k);
+  const slug = s => String(s).toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "");
+
+  const REGIMES = {
+    "bear flattener": "Yields rose, the front end most. Typically a hawkish repricing of the Fed path.",
+    "bear steepener": "Yields rose, the long end most. Points to term premium, supply, fiscal or inflation risk.",
+    "bull flattener": "Yields fell, the long end most. Often growth fears or a flight to quality.",
+    "bull steepener": "Yields fell, the front end most. Typically markets bringing Fed easing forward.",
+    "twist": "Front and long ends moved in opposite directions.",
+  };
+  const convLevel = c => ({ high: 3, medium: 2, low: 1 })[String(c || "").toLowerCase()] || 0;
+
+  /* ---------- data ---------- */
+  function toEntries(list) {
+    return list.map(s => {
+      const text = [s.takeaway, ...(s.drivers || []).flatMap(d => [d.title, d.what, d.why, d.response, d.signal]),
+        ...(s.macro || []).map(m => m.title + " " + (m.note || "")), ...(s.geo || []).map(g => g.title + " " + g.text),
+        s.interpretation && s.interpretation.text].filter(Boolean).join(" ");
+      return Object.assign({}, s, {
+        // Close Edition = #/YYYY-MM-DD (same as Bond Summary); a Morning Brief gets its own id.
+        id: s.market_date + (s.edition === "morning" ? "-am" : ""), date: parseDay(s.market_date), generated: s.generated_at,
+        title: s.title || "Intelligent Summary", preview: s.takeaway || "", text,
+        minutes: Math.max(1, Math.round(text.split(/\s+/).length / 230)),
+      });
+    }).filter(e => e.date).sort((a, b) => b.date - a.date);
+  }
+
+  const treasuryRows = () => data.treasuries || [];
+
+  // Rows for one chart: its source rows, plus any derived fields, limited to the range.
+  function chartRows(c) {
+    let rows = data[c.source] || [];
+    if (c.derive) rows = rows.map(r => { const extra = c.derive(r); return extra ? Object.assign({ date: r.date }, extra) : null; }).filter(Boolean);
+    if (!rows.length) return rows;
+    const last = parseDay(rows[rows.length - 1].date);
+    const from = new Date(last);
+    if (range === "1M") from.setMonth(from.getMonth() - 1);
+    else if (range === "3M") from.setMonth(from.getMonth() - 3);
+    else from.setMonth(0, 1);
+    return rows.filter(r => parseDay(r.date) >= from);
+  }
+
+  const fmtVal = (c, v) => {
+    const dp = c.decimals ?? (c.unit === "bp" ? 0 : 2);
+    return c.unit === "%" ? v.toFixed(dp) + "%" : c.unit === "bp" ? v.toFixed(dp) + " bp" : v.toFixed(dp);
+  };
+  const fmtAxis = (c, v) => {
+    const dp = c.unit === "bp" ? 0 : c.decimals ?? 2;
+    const s = (Math.abs(v) < 1e-9 ? 0 : v).toFixed(dp);
+    return c.unit === "%" ? s + "%" : s;
+  };
+
+  /* ---------- latest levels ---------- */
+  function statsHTML() {
+    const rows = treasuryRows();
+    if (!rows.length) return "";
+    const last = rows[rows.length - 1], prev = rows[rows.length - 2];
+    const spread = r => r && r.DGS10 != null && r.DGS2 != null ? r.DGS10 - r.DGS2 : null;
+
+    // Comparison window: the trailing 52 weeks when a year of history is available
+    // (yields_1y from the feed), otherwise everything we have, labeled "YTD".
+    const lastDay = parseDay(last.date);
+    const yearAgo = new Date(lastDay); yearAgo.setFullYear(yearAgo.getFullYear() - 1);
+    const yr = rows.year && rows.year.length && rows.year[rows.year.length - 1].date === last.date ? rows.year : rows;
+    const hasYear = parseDay(yr[0].date) <= yearAgo;
+    const windowRows = hasYear ? yr.filter(r => parseDay(r.date) >= yearAgo) : yr;
+    const winLabel = hasYear ? "52W" : "YTD";
+
+    const stat = (label, pick, isSpread) => {
+      const v = pick(last), pv = prev ? pick(prev) : null;
+      if (v == null) return "";
+      const show = n => isSpread ? Math.round(n * 100) + " bp" : n.toFixed(2) + "%";
+      let d = `<div class="d flat">as of ${fmtShort(lastDay)}</div>`;
+      if (pv != null) {
+        const bp = Math.round((v - pv) * 100);
+        const cls = bp > 0 ? "up" : bp < 0 ? "down" : "flat";
+        d = `<div class="d ${cls}">${bp > 0 ? "▲ +" : bp < 0 ? "▼ " : "– "}${bp} bp on the day</div>`;
+      }
+
+      // Prior range excludes today, so beating it means a new high/low.
+      const prior = windowRows.slice(0, -1).map(pick).filter(n => n != null && isFinite(n));
+      let range = "", state = "normal", chip = "", spoken = "";
+      if (prior.length >= 20) {
+        const pLo = Math.min(...prior), pHi = Math.max(...prior);
+        state = v > pHi ? "high" : v < pLo ? "low" : "normal";
+        const lo = Math.min(pLo, v), hi = Math.max(pHi, v);
+        const pct = n => hi === lo ? 50 : ((n - lo) / (hi - lo)) * 100;
+        const segs = state === "high"
+          ? `<div class="fill" style="width:${pct(pHi)}%"></div><div class="ext" style="left:${pct(pHi)}%;width:${100 - pct(pHi)}%"></div>`
+          : state === "low"
+          ? `<div class="ext" style="width:${pct(pLo)}%"></div>`
+          : `<div class="fill" style="width:${pct(v)}%"></div>`;
+        range = `<div class="rng" aria-hidden="true">${segs}<div class="tick" style="left:${pct(v)}%"></div></div>
+          <div class="rng-ends" aria-hidden="true"><span>${show(lo)}</span><span>${winLabel} range</span><span>${show(hi)}</span></div>`;
+        if (state !== "normal") chip = `<span class="rec" aria-hidden="true">${winLabel} ${state === "high" ? "HIGH" : "LOW"}</span>`;
+        spoken = state === "high" ? `New ${winLabel} high; previous high ${show(pHi)}.`
+          : state === "low" ? `New ${winLabel} low; previous low ${show(pLo)}.`
+          : `${winLabel} range ${show(pLo)} to ${show(pHi)}.`;
+      }
+      return `<div class="stat is-${state}"><div class="k">${label}</div>
+        <div class="vrow"><div class="v">${show(v)}</div>${chip}<span class="sr">${spoken}</span></div>${d}${range}</div>`;
+    };
+    return `<section class="stats" aria-label="Latest levels">
+        ${stat("2-year", r => r.DGS2)}
+        ${stat("10-year", r => r.DGS10)}
+        ${stat("30-year", r => r.DGS30)}
+        ${stat("10Y – 2Y curve", spread, true)}
+      </section>`;
+  }
+
+  /* ---------- chart rail ---------- */
+  function railHTML() {
+    const cards = CHARTS.map(c => `
+      <article class="card chart" id="chart-${esc(c.id)}" aria-label="${esc(c.title)}">
+        <div class="chart-head"><h3>${esc(c.title)}</h3>${c.group ? `<span class="group">${esc(c.group)}</span>` : ""}</div>
+        <div class="legend">
+          ${c.series.map(s => `<span><i style="background:${s.color}"></i>${esc(s.label)}</span>`).join("")}
+          ${c.markSummaries && entries.length ? `<span><span class="dotkey"></span>Day with a summary</span>` : ""}
+        </div>
+        <div class="chartbox" data-chart="${esc(c.id)}"></div>
+        <div class="source" data-source="${esc(c.id)}"></div>
+      </article>`).join("");
+    const soon = COMING_SOON ? `<article class="card chart soon" aria-label="More charts coming"><span class="eyebrow">Coming soon</span><p>${esc(COMING_SOON)}</p></article>` : "";
+    const total = CHARTS.length;
+    return `
+      <div class="sechead">
+        <h2>Charts</h2>
+        <div class="tools">
+          <div class="seg" role="group" aria-label="Chart range">
+            ${["1M", "3M", "YTD"].map(r => `<button data-range="${r}" aria-pressed="${r === range}">${r}</button>`).join("")}
+          </div>
+          <span class="nav-arrows" ${total < 2 ? "hidden" : ""}>
+            <button class="iconbtn" id="railPrev" aria-label="Previous chart"><svg viewBox="0 0 24 24"><path d="M15 18l-6-6 6-6"/></svg></button>
+            <button class="iconbtn" id="railNext" aria-label="Next chart"><svg viewBox="0 0 24 24"><path d="M9 18l6-6-6-6"/></svg></button>
+          </span>
+          <span class="count" id="railCount"></span>
+        </div>
+      </div>
+      <div class="rail" id="rail" tabindex="0" aria-label="Charts, scroll sideways for more">${cards}${soon}</div>`;
+  }
+
+  function drawAllCharts() { CHARTS.forEach(drawChart); updateRailNav(); }
+
+  function drawChart(c) {
+    const box = app.querySelector(`.chartbox[data-chart="${c.id}"]`);
+    const src = app.querySelector(`.source[data-source="${c.id}"]`);
+    if (!box) return;
+    if (data[c.source] === null) { box.innerHTML = `<div class="msg">This chart's data didn't load. It'll try again on your next visit.</div>`; return; }
+    const pts = chartRows(c);
+    if (!pts.length) { box.innerHTML = `<div class="msg">No data yet.</div>`; return; }
+    if (src) src.textContent = (c.note ? c.note + ". " : "") + `Latest ${fmtFull(parseDay(pts[pts.length - 1].date))}.`;
+
+    const summaryDays = new Set(entries.map(e => e.id));
+    // Charts grow with the space they get: 200px on a phone, up to 340px on a wide screen
+    const W = box.clientWidth || 520, H = window.innerWidth < 760 ? 200 : Math.round(Math.min(340, Math.max(220, W * 0.46)));
+    const m = { t: 12, r: 12, b: 26, l: c.unit === "%" ? 46 : 40 };
+    const vals = pts.flatMap(p => c.series.map(s => p[s.key])).filter(v => v != null);
+    if (c.zeroLine) vals.push(0);
+    let lo = Math.min(...vals), hi = Math.max(...vals);
+    const pad = Math.max(c.unit === "bp" ? 2 : 0.05, (hi - lo) * 0.08); lo -= pad; hi += pad;
+    // Round gridlines to tidy steps (e.g. 0.25%, 10 bp)
+    const raw = (hi - lo) / 4, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / mag;
+    const tick = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * mag;
+    lo = Math.floor(lo / tick) * tick; hi = Math.ceil(hi / tick) * tick;
+    const x = i => pts.length === 1 ? (m.l + W - m.r) / 2 : m.l + i * (W - m.l - m.r) / (pts.length - 1);
+    const y = v => m.t + (hi - v) * (H - m.t - m.b) / (hi - lo);
+
+    const grid = [];
+    for (let v = lo; v <= hi + tick / 2; v += tick) {
+      grid.push(`<line x1="${m.l}" x2="${W - m.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/>`,
+                `<text x="${m.l - 8}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${fmtAxis(c, v)}</text>`);
+    }
+    const zero = c.zeroLine && lo < 0 && hi > 0 ? `<line class="zero" x1="${m.l}" x2="${W - m.r}" y1="${y(0).toFixed(1)}" y2="${y(0).toFixed(1)}"/>` : "";
+    const maxLabels = Math.max(2, Math.floor((W - m.l - m.r) / 70));
+    const step = Math.max(1, Math.ceil(pts.length / maxLabels));
+    const xl = pts.map((p, i) => {
+      const lastIdx = pts.length - 1;
+      const show = i === lastIdx || (i % step === 0 && x(lastIdx) - x(i) >= 64);
+      return show ? `<text x="${x(i).toFixed(1)}" y="${H - 6}" text-anchor="${i === lastIdx ? "end" : i === 0 ? "start" : "middle"}">${fmtShort(parseDay(p.date))}</text>` : "";
+    }).join("");
+
+    const lines = c.series.map(s => {
+      const seg = pts.map((p, i) => p[s.key] == null ? null : [x(i), y(p[s.key])]).filter(Boolean);
+      if (!seg.length) return "";
+      const d = seg.map((q, i) => (i ? "L" : "M") + q[0].toFixed(1) + " " + q[1].toFixed(1)).join(" ");
+      const lastPt = seg[seg.length - 1];
+      return `<path d="${d}" fill="none" stroke="${s.color}" stroke-width="${s.bold ? 2.25 : 1.6}" stroke-linejoin="round" stroke-linecap="round"/>
+              <circle cx="${lastPt[0].toFixed(1)}" cy="${lastPt[1].toFixed(1)}" r="3.5" fill="${s.color}"/>`;
+    }).join("");
+
+    const mk = c.markSummaries;
+    const marks = mk ? pts.map((p, i) => summaryDays.has(p.date) && p[mk] != null
+      ? `<circle cx="${x(i).toFixed(1)}" cy="${y(p[mk]).toFixed(1)}" r="4.5" fill="var(--surface)" stroke="var(--gold)" stroke-width="2"/>` : "").join("") : "";
+
+    box.innerHTML = `
+      <svg viewBox="0 0 ${W} ${H}" role="img" aria-label="${esc(c.title)}, line chart">
+        <g class="grid axis">${grid.join("")}</g>${zero}
+        <g class="axis">${xl}</g>
+        <line class="hoverline" y1="${m.t}" y2="${H - m.b}" stroke="var(--ink-3)" stroke-dasharray="3 3" opacity="0"/>
+        ${lines}${marks}
+        <rect class="hit" x="${m.l}" y="0" width="${W - m.l - m.r}" height="${H - m.b}" fill="transparent"/>
+      </svg>
+      <div class="tip"></div>`;
+    box.querySelector("svg").style.height = H + "px";
+
+    const hit = box.querySelector(".hit"), tip = box.querySelector(".tip"), hl = box.querySelector(".hoverline");
+    const nearest = ev => {
+      const r = box.getBoundingClientRect(), px = (ev.clientX - r.left) * (W / r.width);
+      let best = 0; pts.forEach((p, i) => { if (Math.abs(x(i) - px) < Math.abs(x(best) - px)) best = i; });
+      return best;
+    };
+    const show = ev => {
+      const i = nearest(ev), p = pts[i], r = box.getBoundingClientRect();
+      const has = mk && summaryDays.has(p.date);
+      hl.setAttribute("x1", x(i)); hl.setAttribute("x2", x(i)); hl.setAttribute("opacity", 1);
+      tip.innerHTML = `<b>${fmtFull(parseDay(p.date))}</b><br>` +
+        c.series.filter(s => p[s.key] != null).map(s => `${esc(s.label)} ${fmtVal(c, p[s.key])}`).join(" · ") +
+        (has ? `<br><span class="open">Click to read that day's summary</span>` : "");
+      const left = Math.min(Math.max(x(i) * r.width / W, 110), r.width - 110);
+      tip.style.left = left + "px";
+      tip.style.top = (y(Math.max(...c.series.map(s => p[s.key] ?? lo))) * r.height / H) + "px";
+      tip.style.opacity = 1;
+      hit.style.cursor = has ? "pointer" : "default";
+    };
+    const hide = () => { tip.style.opacity = 0; hl.setAttribute("opacity", 0); };
+    hit.addEventListener("mousemove", show);
+    hit.addEventListener("mouseleave", hide);
+    hit.addEventListener("click", ev => { const p = pts[nearest(ev)]; if (mk && summaryDays.has(p.date)) location.hash = "#/" + p.date; else show(ev); });
+  }
+
+  // Arrows and "1 of 3" for the rail
+  function railStep() { const r = document.getElementById("rail"), card = r && r.querySelector(".chart"); return card ? card.getBoundingClientRect().width + 16 : 300; }
+  function updateRailNav() {
+    const r = document.getElementById("rail"); if (!r) return;
+    const cards = [...r.querySelectorAll(".chart:not(.soon)")];
+    const prev = document.getElementById("railPrev"), next = document.getElementById("railNext"), count = document.getElementById("railCount");
+    const max = r.scrollWidth - r.clientWidth - 2;
+    if (prev) prev.disabled = r.scrollLeft <= 2;
+    if (next) next.disabled = r.scrollLeft >= max;
+    if (count && cards.length > 1) {
+      const rl = r.getBoundingClientRect().left;
+      let first = cards.findIndex(c => c.getBoundingClientRect().right > rl + 40);
+      if (first < 0) first = cards.length - 1;
+      const visible = cards.filter(c => { const b = c.getBoundingClientRect(); return b.left >= rl - 4 && b.right <= r.getBoundingClientRect().right + 4; }).length || 1;
+      const lastShown = Math.min(cards.length, first + visible);
+      count.textContent = visible > 1 && lastShown > first + 1 ? `${first + 1}–${lastShown} of ${cards.length}` : `${first + 1} of ${cards.length}`;
+    } else if (count) count.textContent = "";
+  }
+
+  // Latest levels when the FRED feed isn't available: taken from the newest edition's tape.
+  function tapeStatsHTML(e) {
+    if (!e || !e.tape) return "";
+    const tile = (label, t) => t ? `<div class="stat"><div class="k">${label}</div><div class="vrow"><div class="v">${lvl(t)}</div></div>
+      <div class="d ${dirCls(t.d)}">${t.d > 0 ? "▲ " : t.d < 0 ? "▼ " : "– "}${signed(t.d, "bp")} on the day</div></div>` : "";
+    return `<section class="stats" aria-label="Latest levels">
+        ${tile("2-year", tapeGet(e, "2Y"))}${tile("10-year", tapeGet(e, "10Y"))}${tile("30-year", tapeGet(e, "30Y"))}${tile("10Y – 2Y curve", tapeGet(e, "2s10s"))}
+      </section>`;
+  }
+
+  const BOND_SUMMARY_URL = "https://point75.io/bondsummary";
+  const crumbsHTML = (extra) => `<nav class="crumbs" aria-label="Breadcrumb"><a href="${BOND_SUMMARY_URL}" target="_top">Bond Summary</a><span aria-hidden="true">›</span>${extra
+      ? `<a href="#/">Intelligent Summary</a><span aria-hidden="true">›</span><span aria-current="page">${extra}</span>`
+      : `<span aria-current="page">Intelligent Summary</span>`}</nav>`;
+
+  /* ---------- list view ---------- */
+  function filtered() {
+    const q = query.trim().toLowerCase();
+    return q ? entries.filter(e => e.title.toLowerCase().includes(q) || e.text.toLowerCase().includes(q) || String(e.regime || "").toLowerCase().includes(q)) : entries;
+  }
+
+  function movesHTML(e) {
+    return `<div class="moves">${["2Y", "10Y", "30Y"].map(k => { const t = tapeGet(e, k);
+      return t ? `<span>${k} <b class="d ${dirCls(t.d)}">${signed(t.d, "bp")}</b></span>` : ""; }).join("")}</div>`;
+  }
+
+  function cardsHTML() {
+    const rows = filtered();
+    if (!rows.length) return `<li class="empty">${entries.length ? "No summaries match your search." : "No summaries yet. The first one will appear after the next run."}</li>`;
+    return rows.map((e, n) => {
+      const isLatest = e === entries[0], isRead = readSet.has(e.id) && !isLatest;
+      const lead = isLatest && n === 0 && !query.trim();
+      const tags = `<div class="tags">
+          ${isLatest ? '<span class="tag solid">Latest</span>' : ""}
+          ${isSample ? '<span class="tag muted">Sample</span>' : ""}
+          <span class="tag">${fmtShort(e.date)}</span>
+          ${e.regime ? `<span class="tag">${esc(e.regime)}</span>` : ""}
+          ${isRead ? '<span class="tag muted">Read</span>' : ""}
+          <span class="when">${fmtDay(e.date)} · ${e.minutes} min read</span>
+        </div>`;
+      if (lead) {
+        const rowsHTML = ["2Y", "5Y", "10Y", "30Y", "2s10s"].map(k => { const t = tapeGet(e, k);
+          return t ? `<div class="row"><span>${k === "2s10s" ? "10Y – 2Y" : k}</span><b>${lvl(t)} <span class="d ${dirCls(t.d)}">${signed(t.d, "bp")}</span></b></div>` : ""; }).join("");
+        return `<li class="lead"><a class="card sum" href="#/${e.id}">
+            <div class="main">${tags}<h3>${esc(e.title)}</h3><p>${esc(e.preview)}</p>
+              ${e.conviction ? `<div class="moves"><span>Conviction <b>${esc(e.conviction)}</b></span>${e.regime_note ? `<span>${esc(e.regime_note)}</span>` : ""}</div>` : ""}</div>
+            <div class="aside">${rowsHTML ? `<div><div class="eyebrow" style="margin-bottom:4px">Close on ${fmtShort(e.date)}</div>${rowsHTML}</div>` : "<div></div>"}<span class="go">Read the summary →</span></div>
+          </a></li>`;
+      }
+      return `<li><a class="card sum${isRead ? " read" : ""}" href="#/${e.id}">
+          ${tags}<h3>${esc(e.title)}</h3><p>${esc(e.preview)}</p>${movesHTML(e)}<span class="go">Read →</span>
+        </a></li>`;
+    }).join("");
+  }
+
+  const sampleNote = () => isSample ? `<div class="sample-note" role="note"><span class="tag solid">Sample</span>
+      <span>Sample content. The automated Intelligent Summary pipeline isn't live yet, so the editions below use invented numbers to show the format. Latest levels and charts use real FRED closing yields.</span></div>` : "";
+
+  function renderList() {
+    document.title = "Intelligent Summary | Point75";
+    progress.hidden = true;
+    const top = entries[0];
+    app.innerHTML = `
+      <div class="wrap">
+        <section class="hero">
+          <div>
+            ${crumbsHTML()}
+            <div class="eyebrow">Why yields moved, every trading day</div>
+            <h1>Intelligent Summary</h1>
+            <p>${top ? `Latest covers trading on ${fmtFull(top.date)}` : ""}</p>
+          </div>
+          ${top && top.regime ? `<div class="latest"><span>Latest regime</span><div class="tags"><span class="tag solid">${esc(top.regime)}</span>${top.conviction ? `<span class="tag">Conviction: ${esc(top.conviction)}</span>` : ""}</div></div>` : ""}
+        </section>
+        ${sampleNote()}
+        ${treasuryRows().length ? statsHTML() : tapeStatsHTML(top)}
+        ${railHTML()}
+        <div class="sechead">
+          <h2>Summaries</h2>
+          ${entries.length > 6 ? `<div class="filters"><input type="search" id="q" placeholder="Search summaries" value="${esc(query)}" aria-label="Search summaries"></div>` : ""}
+        </div>
+        <ul class="cards" id="cards">${cardsHTML()}</ul>
+      </div>`;
+    drawAllCharts();
+
+    const rail = document.getElementById("rail");
+    rail.addEventListener("scroll", () => requestAnimationFrame(updateRailNav), { passive: true });
+    const prev = document.getElementById("railPrev"), next = document.getElementById("railNext");
+    if (prev) prev.addEventListener("click", () => rail.scrollBy({ left: -railStep(), behavior: "smooth" }));
+    if (next) next.addEventListener("click", () => rail.scrollBy({ left: railStep(), behavior: "smooth" }));
+    rail.addEventListener("keydown", ev => {
+      if (ev.key === "ArrowRight") { rail.scrollBy({ left: railStep(), behavior: "smooth" }); ev.preventDefault(); }
+      if (ev.key === "ArrowLeft") { rail.scrollBy({ left: -railStep(), behavior: "smooth" }); ev.preventDefault(); }
+    });
+    const q = document.getElementById("q");
+    if (q) q.addEventListener("input", () => { query = q.value; document.getElementById("cards").innerHTML = cardsHTML(); });
+    app.querySelectorAll(".seg button").forEach(b => b.addEventListener("click", () => {
+      range = b.dataset.range; store.set("intelsummary:range", range);
+      app.querySelectorAll(".seg button").forEach(o => o.setAttribute("aria-pressed", o === b));
+      drawAllCharts();
+    }));
+  }
+
+  /* ---------- article sections ---------- */
+  const section = (id, title, lede, inner) => `<section class="blk" id="s-${id}" aria-labelledby="h-${id}">
+      <h2 id="h-${id}">${title}</h2>${lede ? `<p class="lede">${lede}</p>` : ""}${inner}</section>`;
+
+  function snapshotHTML(e) {
+    const tile = k => { const t = tapeGet(e, k); if (!t) return "";
+      return `<div class="stat"><div class="k">${k.replace("Y", "-year")}</div><div class="vrow"><div class="v">${lvl(t)}</div></div>
+        <div class="d ${dirCls(t.d)}">${t.d > 0 ? "▲ " : t.d < 0 ? "▼ " : "– "}${signed(t.d, "bp")} on the day</div></div>`; };
+    const tiles = `<div class="tiles">${["2Y", "5Y", "10Y", "30Y"].map(tile).join("")}</div>`;
+    const xa = (e.cross || []).length ? `<ul class="xa" aria-label="Cross-asset check">${e.cross.map(c =>
+      `<li><span class="k">${esc(c.k)}</span><span class="v">${esc(c.v)}</span><span class="r">${esc(c.read)}</span></li>`).join("")}</ul>` : "";
+    return section("snapshot", "Market snapshot", `Closing levels and the cross-asset check for ${fmtLong(e.date)}.`, tiles + xa);
+  }
+
+  function tapeHTML(e) {
+    const tape = e.tape || [];
+    if (!tape.length) return "";
+    const max = Math.max(1, ...tape.map(t => Math.abs(t.d)));
+    let lastGroup = "";
+    const rows = tape.map(t => {
+      const w = Math.abs(t.d) / max * 50;
+      const grp = (t.group || "") !== lastGroup; lastGroup = t.group || "";
+      const sp = t.unit === "bp";   // spreads: steeper/flatter, not yield up/down, so neutral colour
+      const sub = t.k === "10Y real" ? "TIPS yield" : t.k === "10Y breakeven" ? "Inflation priced" : t.unit === "bp" ? "Spread" : "";
+      return `<tr class="${grp ? "grp" : ""}">
+          <td class="name">${esc(t.k)}${sub ? `<small>${sub}</small>` : ""}</td>
+          <td>${lvl(t)}</td>
+          <td class="d ${sp ? "sp" : dirCls(t.d)}">${signed(t.d, "bp")}</td>
+          <td class="wk d ${sp ? "sp" : dirCls(t.w)}">${t.w == null ? "" : signed(t.w, "bp")}</td>
+          <td class="barcell" aria-hidden="true"><div class="bar">${t.d ? `<i class="${t.d > 0 ? "up" : "down"}${sp ? " sp" : ""}" style="width:${w.toFixed(1)}%"></i>` : ""}</div></td>
+        </tr>`;
+    }).join("");
+    const table = `<table class="tape">
+        <thead><tr><th scope="col">Instrument</th><th scope="col">Close</th><th scope="col">Day</th><th scope="col" class="wk">Week</th><th scope="col"><span class="sr">Day move</span></th></tr></thead>
+        <tbody>${rows}</tbody></table>
+      <div class="tape-key"><span>Changes in basis points (1 bp = 0.01%).</span><span><span class="d down">■</span> yield down · <span class="d up">■</span> yield up · <span class="d sp">■</span> spread change</span></div>`;
+    return section("moves", "Treasury yield movements", "How far each maturity, the curve and the two halves of the 10-year moved.", table);
+  }
+
+  function curveSVG(e) {
+    const ks = ["2Y", "5Y", "10Y", "30Y"], yrs = { "2Y": 2, "5Y": 5, "10Y": 10, "30Y": 30 };
+    const pts = ks.map(k => tapeGet(e, k)).filter(Boolean);
+    if (pts.length < 2) return "";
+    const now = pts.map(t => +t.level), prev = pts.map(t => +t.level - t.d / 100);
+    const W = 420, H = 230, m = { t: 28, r: 24, b: 30, l: 44 };
+    let lo = Math.min(...now, ...prev), hi = Math.max(...now, ...prev);
+    const pad = Math.max(0.05, (hi - lo) * 0.18); lo -= pad; hi += pad;
+    const raw = (hi - lo) / 4, mag = Math.pow(10, Math.floor(Math.log10(raw))), f = raw / mag;
+    const tick = (f <= 1 ? 1 : f <= 2 ? 2 : f <= 2.5 ? 2.5 : f <= 5 ? 5 : 10) * mag;
+    lo = Math.floor(lo / tick) * tick; hi = Math.ceil(hi / tick) * tick;
+    const lx = Math.log(2), hx = Math.log(30);
+    const x = k => m.l + (Math.log(yrs[k]) - lx) / (hx - lx) * (W - m.l - m.r);
+    const y = v => m.t + (hi - v) * (H - m.t - m.b) / (hi - lo);
+    const path = vals => pts.map((t, i) => (i ? "L" : "M") + x(t.k).toFixed(1) + " " + y(vals[i]).toFixed(1)).join(" ");
+    const grid = [];
+    for (let v = lo; v <= hi + tick / 2; v += tick) {
+      grid.push(`<line x1="${m.l}" x2="${W - m.r}" y1="${y(v).toFixed(1)}" y2="${y(v).toFixed(1)}"/><text x="${m.l - 8}" y="${(y(v) + 4).toFixed(1)}" text-anchor="end">${v.toFixed(2)}%</text>`); }
+    const labels = pts.map((t, i) => {
+      const up = now[i] >= prev[i];
+      return `<text class="lbl" x="${x(t.k).toFixed(1)}" y="${(y(now[i]) + (up ? -10 : 18)).toFixed(1)}" text-anchor="${i === 0 ? "start" : i === pts.length - 1 ? "end" : "middle"}" style="fill:var(--${t.d > 0 ? "up" : t.d < 0 ? "down" : "ink-3"});font-weight:600;font-size:12px">${signed(t.d)} bp</text>
+        <text x="${x(t.k).toFixed(1)}" y="${H - 8}" text-anchor="middle">${t.k}</text>`; }).join("");
+    return `<svg viewBox="0 0 ${W} ${H}" role="img" aria-label="Yield curve at the close versus the previous close">
+        <g class="grid axis">${grid.join("")}</g>
+        <path d="${path(prev)}" fill="none" stroke="var(--ink-3)" stroke-width="1.5" stroke-dasharray="4 4"/>
+        <path d="${path(now)}" fill="none" stroke="var(--gold)" stroke-width="2.25" stroke-linejoin="round"/>
+        ${pts.map((t, i) => `<circle cx="${x(t.k).toFixed(1)}" cy="${y(prev[i]).toFixed(1)}" r="3" fill="var(--bg)" stroke="var(--ink-3)" stroke-width="1.5"/><circle cx="${x(t.k).toFixed(1)}" cy="${y(now[i]).toFixed(1)}" r="4" fill="var(--gold)"/>`).join("")}
+        <g class="axis">${labels}</g>
+      </svg>`;
+  }
+
+  function curveHTML(e) {
+    const svg = curveSVG(e);
+    const s210 = tapeGet(e, "2s10s"), s530 = tapeGet(e, "5s30s"), f = e.fed;
+    const row = (k, v, from) => `<div class="row"><span>${k}</span><b>${v}${from ? ` <span class="from">${from}</span>` : ""}</b></div>`;
+    const kv = [
+      s210 ? row("10Y – 2Y", lvl(s210), `(${signed(s210.d, "bp")})`) : "",
+      s530 ? row("30Y – 5Y", lvl(s530), `(${signed(s530.d, "bp")})`) : "",
+      f && f.odds != null ? row(`Cut odds, ${esc(f.meeting || "next meeting")}`, f.odds + "%", f.odds_prev != null ? `from ${f.odds_prev}%` : "") : "",
+      f && f.priced != null ? row(`Cuts priced ${esc(String(f.horizon || "").replace(/^through /, "to "))}`.trim(), f.priced + " bp", f.priced_prev != null ? `from ${f.priced_prev} bp` : "") : "",
+    ].join("");
+    const regime = e.regime ? `<div class="eyebrow">Curve regime</div><div class="name">${esc(e.regime)}</div><p>${esc(REGIMES[String(e.regime).toLowerCase()] || e.regime_note || "")}</p>` : "";
+    const inner = `<div class="curve">
+        ${svg ? `<div class="card curvebox"><div class="legend"><span><i style="background:var(--gold)"></i>Close</span><span><i style="background:var(--ink-3)"></i>Previous close</span></div>${svg}</div>` : ""}
+        <div class="card regime">${regime}<div class="kv">${kv}</div></div>
+      </div>`;
+    return section("curve", "Yield curve", "The shape of the move across maturities, and what it says about Fed expectations.", inner);
+  }
+
+  function driversHTML(e) {
+    const ds = e.drivers || [];
+    if (!ds.length) return "";
+    const cards = ds.map((d, i) => {
+      const attr = d.bp != null && d.total
+        ? `<div class="attr">≈ ${Math.abs(d.bp)} bp of the ${esc(d.of)}'s ${signed(d.total, "bp")} move<div class="track"><i style="width:${Math.min(100, Math.abs(d.bp) / Math.abs(d.total) * 100).toFixed(0)}%"></i></div></div>`
+        : d.impact ? `<div class="attr">${esc(d.impact)}</div>` : "";
+      return `<article class="card drv" aria-labelledby="drv-${i}">
+          <div class="drv-head"><span class="rank" aria-hidden="true">${i + 1}</span>
+            <div><h3 id="drv-${i}">${esc(d.title)}</h3><div class="tags">${(d.tags || []).map(t => `<span class="tag">${esc(t)}</span>`).join("")}</div></div></div>
+          ${attr}
+          <dl class="chain">
+            <dt>What happened</dt><dd>${esc(d.what)}</dd>
+            <dt>Why it mattered</dt><dd>${esc(d.why)}</dd>
+            <dt>Bond response</dt><dd>${esc(d.response)}</dd>
+            <dt class="sig">Signal</dt><dd class="sig">${esc(d.signal)}</dd>
+          </dl>
+        </article>`;
+    }).join("");
+    return section("why", "Why yields moved", "Drivers ranked by how much of the move they explain.", `<div class="drivers">${cards}</div>`);
+  }
+
+  function macroHTML(e) {
+    const ms = e.macro || [];
+    const items = ms.map(m => {
+      const figs = [["Actual", m.actual, true], ["Consensus", m.consensus], ["Prior", m.prior]].filter(f => f[1] != null && f[1] !== "")
+        .map(f => `<span class="fig${f[2] ? " hit" : ""}">${f[0]}<b>${esc(f[1])}</b></span>`).join("");
+      return `<li class="card dev"><div class="dev-top"><span class="tag">${esc(m.tag || "Macro")}</span>${m.time ? `<span class="time">${esc(m.time)} ET</span>` : ""}</div>
+          <h3>${esc(m.title)}</h3>${figs ? `<div class="figs">${figs}</div>` : ""}${m.note ? `<p>${esc(m.note)}</p>` : ""}</li>`;
+    }).join("");
+    return section("macro", "Key macro developments", "Data, Fed and supply news, with actual versus expected where it applies.",
+      items ? `<ul class="devs">${items}</ul>` : `<div class="none">No major macro releases today.</div>`);
+  }
+
+  function geoHTML(e) {
+    const gs = e.geo || [];
+    const items = gs.map(g => { const imp = String(g.impact || "None").toLowerCase();
+      return `<li class="card dev"><div class="dev-top"><span class="tag">Geopolitics</span><span class="impact ${esc(imp)}">Market impact: ${esc(g.impact || "None")}</span></div>
+          <h3>${esc(g.title)}</h3><p>${esc(g.text)}</p></li>`; }).join("");
+    return section("geo", "Geopolitical developments", "Events abroad, judged by whether they actually moved Treasuries.",
+      items ? `<ul class="devs">${items}</ul>` : `<div class="none">No geopolitical development moved Treasuries today.</div>`);
+  }
+
+  function eventsHTML(e) {
+    const ev = e.events || [];
+    if (!ev.length) return "";
+    const items = ev.map(x => `<li><span class="t">${esc(x.t)}</span><div><div class="what">${x.cat ? `<span class="tag">${esc(x.cat)}</span>` : ""}${esc(x.title)}</div>${x.react ? `<div class="react">${esc(x.react)}</div>` : ""}</div></li>`).join("");
+    return section("events", "News and events", "The session in order, with how yields reacted. Times are Eastern.", `<ol class="tl">${items}</ol>`);
+  }
+
+  function interpHTML(e) {
+    const it = e.interpretation; if (!it) return "";
+    const n = convLevel(e.conviction);
+    const meter = e.conviction ? `<span class="meter"><span>Conviction <b style="color:var(--ink)">${esc(e.conviction)}</b></span><span class="pips" aria-hidden="true">${[1, 2, 3].map(i => `<i class="${i <= n ? "on" : ""}"></i>`).join("")}</span></span>` : "";
+    return section("interpretation", "Market interpretation", "",
+      `<div class="card interp"><div class="interp-top"><span class="eyebrow">What the move signals</span>${meter}</div>
+        <p>${esc(it.text)}</p>${it.change ? `<div class="change"><b>What would change the view:</b> ${esc(it.change)}</div>` : ""}</div>`);
+  }
+
+  function watchHTML(e) {
+    const w = e.watch || []; if (!w.length) return "";
+    return section("next", "What's next", "", `<ul class="next">${w.map(x => `<li><span class="when">${esc(x.when)} ET</span><span>${esc(x.what)}</span></li>`).join("")}</ul>`);
+  }
+
+  function sourcesHTML(e) {
+    const s = e.sources || []; if (!s.length) return "";
+    return section("sources", "Sources", "", `<ul class="srcs">${s.map(x => `<li>${x.url ? `<a href="${esc(x.url)}" target="_blank" rel="noopener">${esc(x.name)}</a>` : esc(x.name)}</li>`).join("")}</ul>`);
+  }
+
+  /* ---------- article view ---------- */
+  function renderArticle(e) {
+    const i = entries.indexOf(e);
+    const newer = entries[i - 1], older = entries[i + 1];
+    document.title = e.title + " | Intelligent Summary";
+    markRead(e.id);
+    const edition = e.edition === "morning" ? "Morning Brief" : "Close Edition";
+
+    app.innerHTML = `
+      <div class="stickybar wide" id="stickybar"><div class="wrap">
+        <a class="back" href="#/">← All summaries</a>
+        <span class="crumb">${fmtLong(e.date)}</span>
+      </div></div>
+      <article class="article wide">
+        ${crumbsHTML(fmtLong(e.date))}
+        ${isSample ? `<div class="sample-note" role="note"><span class="tag solid">Sample</span><span>Sample edition with invented numbers, shown to preview the format until the automated pipeline is live.</span></div>` : ""}
+        <div class="eyebrow">Intelligent Summary · ${edition} · ${fmtLong(e.date)}</div>
+        <h1>${esc(e.title)}</h1>
+        <div class="meta">Covers trading on ${fmtFull(e.date)}${e.as_of ? ` · As of ${esc(e.as_of)}` : ""} · ${e.minutes} min read${e.generated ? ` · Published ${fmtStamp(e.generated)}` : ""}</div>
+        <div class="chips">${e.regime ? `<span class="tag solid">${esc(e.regime)}</span>` : ""}${e.regime_note ? `<span class="tag">${esc(e.regime_note)}</span>` : ""}${e.conviction ? `<span class="tag">Conviction: ${esc(e.conviction)}</span>` : ""}</div>
+        ${e.takeaway ? `<div class="takeaway"><div class="eyebrow">Key takeaway</div><p>${esc(e.takeaway)}</p></div>` : ""}
+        <ul class="toc" id="toc" hidden></ul>
+        <div id="body">
+          ${snapshotHTML(e)}${tapeHTML(e)}${curveHTML(e)}${driversHTML(e)}${macroHTML(e)}${geoHTML(e)}${eventsHTML(e)}${interpHTML(e)}${watchHTML(e)}${sourcesHTML(e)}
+        </div>
+        <nav class="pager" aria-label="More summaries">
+          ${older ? `<a href="#/${older.id}"><div class="lbl">← Previous · ${fmtShort(older.date)}</div><div class="t">${esc(older.title)}</div></a>` : "<span></span>"}
+          ${newer ? `<a class="next" href="#/${newer.id}"><div class="lbl">Next · ${fmtShort(newer.date)} →</div><div class="t">${esc(newer.title)}</div></a>` : ""}
+        </nav>
+        <a class="allbtn" href="#/">Back to all summaries</a>
+        <div class="kbd"><kbd>←</kbd> <kbd>→</kbd> previous / next · <kbd>Esc</kbd> all summaries</div>
+      </article>`;
+
+    const heads = [...document.querySelectorAll("#body .blk > h2")];
+    if (heads.length >= 2) {
+      const toc = document.getElementById("toc");
+      toc.innerHTML = heads.map((h, n) => `<li><button data-n="${n}">${esc(h.textContent)}</button></li>`).join("");
+      toc.hidden = false;
+      toc.addEventListener("click", ev => { const b = ev.target.closest("button"); if (b) heads[+b.dataset.n].scrollIntoView({ block: "start" }); });
+    }
+    progress.hidden = false;
+    onScroll();
+  }
+
+  /* ---------- router ---------- */
+  function route() {
+    const id = decodeURIComponent(location.hash.replace(/^#\/?/, ""));
+    const e = id && entries.find(x => x.id === id || x.key === id);
+    if (e) {
+      if (current === "list") listScrollY = window.scrollY;
+      const fromList = current === "list";
+      renderArticle(e);
+      window.scrollTo({ top: 0, behavior: "instant" });
+      tellHost({ type: "view", view: "article", fromList });
+      current = e.id;
+    } else {
+      const fromArticle = current && current !== "list";
+      renderList();
+      window.scrollTo({ top: fromArticle ? listScrollY : 0, behavior: "instant" });
+      if (current !== null) tellHost({ type: "view", view: "list", fromArticle });
+      current = "list";
+    }
+  }
+
+  /* ---------- scroll & keys ---------- */
+  function onScroll() {
+    const y = window.scrollY, max = document.documentElement.scrollHeight - innerHeight;
+    totop.classList.toggle("show", y > 500);
+    if (!progress.hidden) progress.style.width = (max > 0 ? Math.min(100, y / max * 100) : 100) + "%";
+    const sb = document.getElementById("stickybar"); if (sb) sb.classList.toggle("scrolled", y > 10);
+  }
+  window.addEventListener("scroll", onScroll, { passive: true });
+  totop.addEventListener("click", () => window.scrollTo({ top: 0 }));
+  let rT; window.addEventListener("resize", () => { clearTimeout(rT); rT = setTimeout(() => { if (current === "list") drawAllCharts(); }, 150); });
+  window.addEventListener("hashchange", route);
+  document.addEventListener("keydown", ev => {
+    if (ev.target.closest("input, select, textarea, .rail") || ev.metaKey || ev.ctrlKey || ev.altKey) return;
+    if (!current || current === "list") return;
+    const i = entries.findIndex(e => e.id === current);
+    if (ev.key === "Escape") location.hash = "#/";
+    else if (ev.key === "ArrowLeft" && entries[i + 1]) location.hash = "#/" + entries[i + 1].id;
+    else if (ev.key === "ArrowRight" && entries[i - 1]) location.hash = "#/" + entries[i - 1].id;
+  });
+
+  /* ---------- load ---------- */
+  const getJSON = url => fetch(url, { cache: "no-store" }).then(r => r.ok ? r.json() : Promise.reject(new Error(url + " → " + r.status)));
+
+  function load() {
+    app.innerHTML = `<div class="state">Loading Intelligent Summary…</div>`;
+    const srcKeys = Object.keys(SOURCES);
+    const listReq = FORCE_SAMPLE ? Promise.resolve({ summaries: [] }) : getJSON(API + "/api/intelsummary-list");
+    Promise.allSettled([listReq, ...srcKeys.map(k => getJSON(API + SOURCES[k].url))])
+      .then(([list, ...srcs]) => {
+        srcs.forEach((s, n) => {
+          const k = srcKeys[n];
+          try { data[k] = s.status === "fulfilled" ? SOURCES[k].toRows(s.value) : null; }
+          catch (err) { data[k] = null; console.warn("Chart source failed:", k, err); }
+          if (s.status !== "fulfilled") console.warn("Chart source unavailable:", k, s.reason);
+        });
+        const live = list.status === "fulfilled" ? (list.value.summaries || []) : [];
+        if (list.status !== "fulfilled") console.warn("Intelligent Summary API unavailable; showing sample editions.", list.reason);
+        isSample = !live.length;
+        document.getElementById("sampleDisclaimer").hidden = !isSample;
+        entries = toEntries(isSample ? SAMPLE : live);
+        current = null;
+        route();
+      })
+      .catch(err => {
+        console.error("Could not load Intelligent Summary", err);
+        app.innerHTML = `<div class="state">Couldn't load the Intelligent Summary right now. <a id="retry">Try again</a></div>`;
+        document.getElementById("retry").addEventListener("click", load);
+      });
+  }
+  load();
+})();
+</script>
+</body>
+</html>
