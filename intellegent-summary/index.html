@@ -3,16 +3,16 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Intelligent Summary | Point75</title>
-<link rel="canonical" href="https://point75.io/intellegent-summary">
+<title>Bond Summary | Point75</title>
+<link rel="canonical" href="https://point75.io/bondsummary">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hedvig+Letters+Serif:opsz@12..24&family=Manrope:wght@400;500;600;700;800&display=swap" rel="stylesheet">
 <script src="https://cdn.jsdelivr.net/npm/marked@12.0.2/marked.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/dompurify@3.1.6/dist/purify.min.js"></script>
 <!--
-  Intelligent Summary page for point75.io/intellegent-summary (a sub-page of Bond Summary);
-  this Vercel project serves it at /intellegent-summary/.
+  Bond Summary page for point75.io/bondsummary (built as the "Intelligent Summary"; the old
+  bond_summary.html and /bond_summary redirect here). This Vercel project serves it at /intellegent-summary/.
   Data: editions come from the static file intelsummary/editions.json in the point75-site repo
   (GitHub Pages, written daily by a scheduled task), or from /api/intelsummary-list if that is
   ever deployed (see lib/intelsummary-list.js); FRED yields come from /api/yields-ytd.
@@ -564,7 +564,7 @@
       <li><a href="https://point75.io/news">News</a></li>
       <li><a class="coin" href="https://point75.io/bonds"><svg viewBox="0 0 16 16" aria-hidden="true"><circle cx="8" cy="8" r="7" fill="none" stroke="var(--gold)" stroke-width="1.3"/><text x="8" y="11.3" text-anchor="middle" font-size="9.5" font-family="Manrope, system-ui, sans-serif" font-weight="600" fill="var(--gold)">$</text></svg>Bonds</a></li>
       <li class="has-sub"><a href="https://point75.io/pulse">Pulse</a><button class="caret" type="button" aria-expanded="false" aria-controls="sub-pulse" aria-label="Pulse menu"><svg viewBox="0 0 10 7" fill="none" aria-hidden="true"><path d="M5 6.5L0.669873 0.5L9.33013 0.500001L5 6.5Z" fill="currentColor"/></svg></button><ul class="sub" id="sub-pulse"><li><a href="https://point75.io/pulse">Pulse overview</a></li><li><a href="https://point75.io/debt-trap">Debt Trap</a></li></ul></li>
-      <li class="has-sub"><a href="https://point75.io/bondsummary" aria-current="true">Bond Summary</a><button class="caret" type="button" aria-expanded="false" aria-controls="sub-bondsummary" aria-label="Bond Summary menu"><svg viewBox="0 0 10 7" fill="none" aria-hidden="true"><path d="M5 6.5L0.669873 0.5L9.33013 0.500001L5 6.5Z" fill="currentColor"/></svg></button><ul class="sub" id="sub-bondsummary"><li><a href="https://point75.io/bondsummary">Bond Summary overview</a></li><li><a href="https://point75.io/intellegent-summary" aria-current="page">Intelligent Summary</a></li><li><a href="https://point75.io/lenders">lenders</a></li><li><a href="https://point75.io/sector-credit">sector credit</a></li><li><a href="https://point75.io/credit-stress">credit stress</a></li><li><a href="https://point75.io/insights">Insights</a></li></ul></li>
+      <li class="has-sub"><a href="https://point75.io/bondsummary" aria-current="page">Bond Summary</a><button class="caret" type="button" aria-expanded="false" aria-controls="sub-bondsummary" aria-label="Bond Summary menu"><svg viewBox="0 0 10 7" fill="none" aria-hidden="true"><path d="M5 6.5L0.669873 0.5L9.33013 0.500001L5 6.5Z" fill="currentColor"/></svg></button><ul class="sub" id="sub-bondsummary"><li><a href="https://point75.io/bondsummary" aria-current="page">Bond Summary overview</a></li><li><a href="https://point75.io/lenders">lenders</a></li><li><a href="https://point75.io/sector-credit">sector credit</a></li><li><a href="https://point75.io/credit-stress">credit stress</a></li><li><a href="https://point75.io/insights">Insights</a></li></ul></li>
       <li class="has-sub"><a href="https://point75.io/education">Education</a><button class="caret" type="button" aria-expanded="false" aria-controls="sub-education" aria-label="Education menu"><svg viewBox="0 0 10 7" fill="none" aria-hidden="true"><path d="M5 6.5L0.669873 0.5L9.33013 0.500001L5 6.5Z" fill="currentColor"/></svg></button><ul class="sub" id="sub-education"><li><a href="https://point75.io/education">All Education guides</a></li><li><a href="https://point75.io/bond-introduction">Introduction</a></li><li><a href="https://point75.io/bond-history">History</a></li><li><a href="https://point75.io/bond-types">Classification</a></li><li><a href="https://point75.io/cash-logistics">Cash Logistics</a></li><li><a href="https://point75.io/bond-dictionary">Bond Dictionary</a></li><li><a href="https://point75.io/bond-players">Players</a></li><li><a href="https://point75.io/bond-fortunes">Bond Fortunes</a></li></ul></li>
       <li><a href="https://point75.io/about">About</a></li>
     </ul>
@@ -574,7 +574,7 @@
 
 <nav class="p75crumb" id="p75crumb" aria-label="Section" hidden><a href="https://point75.io/bondsummary">← Bond Summary overview</a></nav>
 
-<main id="app"><div class="state">Loading Intelligent Summary…</div></main>
+<main id="app"><div class="state">Loading Bond Summary…</div></main>
 
 <footer class="disclaimer" role="contentinfo">
   <div class="wrap">
@@ -962,7 +962,7 @@
       return Object.assign({}, s, {
         // Close Edition = #/YYYY-MM-DD (same as Bond Summary); a Morning Brief gets its own id.
         id: s.market_date + (s.edition === "morning" ? "-am" : ""), date: parseDay(s.market_date), generated: s.generated_at,
-        title: s.title || "Intelligent Summary", preview: s.takeaway || "", text,
+        title: s.title || "Bond Summary", preview: s.takeaway || "", text,
         minutes: Math.max(1, Math.round(text.split(/\s+/).length / 230)),
       });
     }).filter(e => e.date).sort((a, b) => b.date - a.date);
@@ -1242,18 +1242,18 @@
   }
 
   const sampleNote = () => isSample ? `<div class="sample-note" role="note"><span class="tag solid">Sample</span>
-      <span>Sample content. The automated Intelligent Summary pipeline isn't live yet, so the editions below use invented numbers to show the format. Latest levels and charts use real FRED closing yields.</span></div>` : "";
+      <span>Sample content. The automated Bond Summary pipeline isn't live yet, so the editions below use invented numbers to show the format. Latest levels and charts use real FRED closing yields.</span></div>` : "";
 
   function renderList() {
-    document.title = "Intelligent Summary | Point75";
+    document.title = "Bond Summary | Point75";
     progress.hidden = true;
     document.getElementById("p75crumb").hidden = embedded || !onVercel;
     const top = entries[0];
     app.innerHTML = `
       <div class="wrap">
         <section class="hero">
-          <div class="eyebrow"><a href="https://point75.io/bondsummary" target="_top">Bond Summary</a> · Intelligent Summary</div>
-          <h1>Intelligent Summary</h1>
+          <div class="eyebrow">Treasury market · Daily close</div>
+          <h1>Bond Summary</h1>
           <p class="lede">Why Treasury yields moved, every trading day: what happened, why it mattered, how bonds responded and what the move signals.</p>
           ${top ? `<div class="asof"><span>Updated <b>${fmtLong(top.date)}</b></span>${top.regime ? `<span class="tag solid">${esc(top.regime)}</span>` : ""}${top.conviction ? `<span class="tag">Conviction: ${esc(top.conviction)}</span>` : ""}</div>` : ""}
         </section>
@@ -1447,7 +1447,7 @@
   function renderArticle(e) {
     const i = entries.indexOf(e);
     const newer = entries[i - 1], older = entries[i + 1];
-    document.title = e.title + " | Intelligent Summary";
+    document.title = e.title + " | Bond Summary";
     document.getElementById("p75crumb").hidden = true;
     markRead(e.id);
     const edition = e.edition === "morning" ? "Morning Brief" : "Close Edition";
@@ -1459,7 +1459,7 @@
       </div></div>
       <article class="article wide">
         ${isSample ? `<div class="sample-note" role="note"><span class="tag solid">Sample</span><span>Sample edition with invented numbers, shown to preview the format until the automated pipeline is live.</span></div>` : ""}
-        <div class="eyebrow"><a href="https://point75.io/bondsummary" target="_top">Bond Summary</a> · <a href="#/">Intelligent Summary</a> · ${edition}</div>
+        <div class="eyebrow"><a href="#/">Bond Summary</a> · ${edition}</div>
         <h1>${esc(e.title)}</h1>
         <div class="meta">Covers trading on ${fmtFull(e.date)}${e.as_of ? ` · As of ${esc(e.as_of)}` : ""} · ${e.minutes} min read${e.generated ? ` · Published ${fmtStamp(e.generated)}` : ""}</div>
         <div class="chips">${e.regime ? `<span class="tag solid">${esc(e.regime)}</span>` : ""}${e.regime_note ? `<span class="tag">${esc(e.regime_note)}</span>` : ""}${e.conviction ? `<span class="tag">Conviction: ${esc(e.conviction)}</span>` : ""}</div>
@@ -1565,7 +1565,7 @@
   const getJSON = url => fetch(url, { cache: "no-store" }).then(r => r.ok ? r.json() : Promise.reject(new Error(url + " → " + r.status)));
 
   function load() {
-    app.innerHTML = `<div class="state">Loading Intelligent Summary…</div>`;
+    app.innerHTML = `<div class="state">Loading Bond Summary…</div>`;
     const srcKeys = Object.keys(SOURCES);
     const listReq = FORCE_SAMPLE ? Promise.resolve({ summaries: [] }) : getJSON(API + "/api/intelsummary-list");
     const staticReq = FORCE_SAMPLE ? Promise.resolve({ summaries: [] }) : getJSON(STATIC_EDITIONS);
@@ -1580,7 +1580,7 @@
           if (s.status !== "fulfilled") console.warn("Chart source unavailable:", k, s.reason);
         });
         const live = list.status === "fulfilled" ? (list.value.summaries || []) : [];
-        if (!live.length) console.warn("No Intelligent Summary editions found; showing sample editions.");
+        if (!live.length) console.warn("No Bond Summary editions found; showing sample editions.");
         isSample = !live.length;
         document.getElementById("sampleDisclaimer").hidden = !isSample;
         entries = toEntries(isSample ? SAMPLE : live);
@@ -1588,8 +1588,8 @@
         route();
       })
       .catch(err => {
-        console.error("Could not load Intelligent Summary", err);
-        app.innerHTML = `<div class="state">Couldn't load the Intelligent Summary right now. <a id="retry">Try again</a></div>`;
+        console.error("Could not load Bond Summary", err);
+        app.innerHTML = `<div class="state">Couldn't load the Bond Summary right now. <a id="retry">Try again</a></div>`;
         document.getElementById("retry").addEventListener("click", load);
       });
   }
