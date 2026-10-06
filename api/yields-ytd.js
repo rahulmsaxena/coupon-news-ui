@@ -1,4 +1,4 @@
-// Add alongside bondsummary.js in the same coupon-news-ui/api/ folder.
+// Lives in coupon-news-ui/api/; feeds the charts on the Bond Summary page (intellegent-summary/).
 //
 // GET /api/yields-ytd -> { generated_at, yields: { DGS10: { label, history: [{date, value}, ...] }, ... } }
 //

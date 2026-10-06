@@ -19,7 +19,7 @@
   Until the generator writes editions, the page shows built-in SAMPLE editions under a clear notice.
   ?sample=1 forces the sample editions.
 
-  Same design system and layout as bond_summary.html (styles copied unchanged, new components
+  Same design system and layout as the old bond_summary.html (styles copied unchanged, new components
   added at the end of the stylesheet). Bond Summary itself is not modified.
 
   Layout
@@ -256,7 +256,7 @@
 
   /* =====================================================================================
      Intelligent Summary additions. Everything above this line is copied unchanged from
-     bond_summary.html so both pages share one look; the rules below only add new pieces.
+     the old bond_summary.html so both pages shared one look; the rules below only add new pieces.
      ===================================================================================== */
 
   /* Sample-content notice (shown until the generator writes real editions) */
@@ -607,8 +607,8 @@
   const FORCE_SAMPLE = /[?&]sample=1\b/.test(location.search);
 
   /* =====================================================================================
-     CHARTS: identical to Bond Summary (same FRED feed, same look). See bond_summary.html
-     for how to add a chart. The 5-year line and a 5s30s chart can join once DGS5 is
+     CHARTS: identical to Bond Summary (same FRED feed, same look), carried over from the old bond_summary.html.
+     To add a chart, add an entry to the chart list below. The 5-year line and a 5s30s chart can join once DGS5 is
      added to the yields:ytd feed.
      ===================================================================================== */
   const SOURCES = {
